@@ -1,0 +1,66 @@
+name: custom-agents-platform
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - custom-agents-mysql:/var/lib/mysql
+      - ./deploy/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  agent-management:
+    build:
+      context: .
+      dockerfile: agent-management/Dockerfile
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/custom_agent_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: agent_management
+      DB_PASSWORD: management_dev
+      AGENT_RUNTIME_BASE_URL: http://agent-runtime:8081
+      AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:-local-internal-token}
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  agent-runtime:
+    build:
+      context: .
+      dockerfile: agent-runtime/Dockerfile
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/custom_agent_runtime?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: agent_runtime
+      DB_PASSWORD: runtime_dev
+      MANAGEMENT_DB_URL: jdbc:mysql://mysql:3306/custom_agent_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      MANAGEMENT_DB_USERNAME: agent_management
+      MANAGEMENT_DB_PASSWORD: management_dev
+      AGENT_RUNTIME_PROVIDER: ${AGENT_RUNTIME_PROVIDER:-GOOGLE_GEMINI}
+      AGENT_RUNTIME_MODEL: ${AGENT_RUNTIME_MODEL:-gemini-3.6-flash}
+      AGENT_RUNTIME_MAX_TURNS: ${AGENT_RUNTIME_MAX_TURNS:-8}
+      AGENT_TEST_INTERACTION_TOKEN_SECRET: ${AGENT_TEST_INTERACTION_TOKEN_SECRET:-local-draft-test-token-secret-change-me}
+      AGENT_TEST_INTERACTION_TOKEN_TTL: ${AGENT_TEST_INTERACTION_TOKEN_TTL:-30m}
+      AGENT_HTTP_TOOL_ALLOWED_HOSTS: ${AGENT_HTTP_TOOL_ALLOWED_HOSTS:-}
+      OPENAI_ENABLED: ${OPENAI_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODELS: ${OPENAI_MODELS:-gpt-5.6-sol}
+      GEMINI_ENABLED: ${GEMINI_ENABLED:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODELS: ${GEMINI_MODELS:-gemini-3.6-flash}
+      AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:-local-internal-token}
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  custom-agents-mysql:

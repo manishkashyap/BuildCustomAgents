@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: agent-management
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/custom_agent_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:agent_management}
+    password: ${DB_PASSWORD:management_dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+
+agent-platform:
+  security:
+    enabled: ${AGENT_SECURITY_ENABLED:false}
+
+agents:
+  runtime:
+    base-url: ${AGENT_RUNTIME_BASE_URL:http://localhost:8081}
+    internal-token: ${AGENT_INTERNAL_TOKEN:local-internal-token}
+    connect-timeout: ${AGENT_RUNTIME_CONNECT_TIMEOUT:2s}
+    read-timeout: ${AGENT_RUNTIME_READ_TIMEOUT:5s}
+  retirement:
+    recovery-interval-ms: ${AGENT_RETIREMENT_RECOVERY_INTERVAL_MS:60000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  api-docs:
+    path: /openapi
+  swagger-ui:
+    path: /swagger-ui.html

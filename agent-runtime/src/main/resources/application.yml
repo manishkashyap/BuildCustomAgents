@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: agent-runtime
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/custom_agent_runtime?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:agent_runtime}
+    password: ${DB_PASSWORD:runtime_dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8081}
+
+agent-platform:
+  security:
+    enabled: ${AGENT_SECURITY_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  api-docs:
+    path: /openapi
+  swagger-ui:
+    path: /swagger-ui.html
+
+agents:
+  management-datasource:
+    url: ${MANAGEMENT_DB_URL:jdbc:mysql://localhost:3306/custom_agent_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${MANAGEMENT_DB_USERNAME:agent_management}
+    password: ${MANAGEMENT_DB_PASSWORD:management_dev}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  execution:
+    provider: ${AGENT_RUNTIME_PROVIDER:GOOGLE_GEMINI}
+    model: ${AGENT_RUNTIME_MODEL:gemini-3.6-flash}
+    max-turns: ${AGENT_RUNTIME_MAX_TURNS:8}
+    max-agent-depth: ${AGENT_RUNTIME_MAX_AGENT_DEPTH:3}
+    max-agent-invocations: ${AGENT_RUNTIME_MAX_AGENT_INVOCATIONS:10}
+  test-runs:
+    interaction-token-secret: ${AGENT_TEST_INTERACTION_TOKEN_SECRET:local-draft-test-token-secret-change-me}
+    interaction-token-ttl: ${AGENT_TEST_INTERACTION_TOKEN_TTL:30m}
+  tools:
+    http:
+      allowed-hosts: ${AGENT_HTTP_TOOL_ALLOWED_HOSTS:}
+  llm:
+    openai:
+      enabled: ${OPENAI_ENABLED:false}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      api-key: ${OPENAI_API_KEY:}
+      models: ${OPENAI_MODELS:gpt-5.6-sol}
+    gemini:
+      enabled: ${GEMINI_ENABLED:true}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+      api-key: ${GEMINI_API_KEY:}
+      models: ${GEMINI_MODELS:gemini-3.6-flash}
