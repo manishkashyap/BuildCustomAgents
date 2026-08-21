@@ -1,0 +1,12 @@
+target/
+.idea/
+.vscode/
+*.iml
+.DS_Store
+.spreadsheet-work/
+*.log
+.env
+.env.*
+!.env.example
+*.swp
+*.swo

@@ -1,10 +1,10 @@
 package com.manish.customagents.agent.repository;
 
 import com.manish.customagents.agent.entity.CustomAgentEntity;
-import java.util.Optional;
-import java.util.List;
-import com.manish.customagents.agent.enums.AgentStatus;
+import com.manish.customagents.agent.enums.AgentLineageStatus;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CustomAgentRepository extends JpaRepository<CustomAgentEntity, String> {
@@ -16,8 +16,12 @@ public interface CustomAgentRepository extends JpaRepository<CustomAgentEntity, 
     List<CustomAgentEntity> findByLicenseCodeAndDeletedFalseOrderByUpdatedAtDesc(String licenseCode);
 
     List<CustomAgentEntity> findByLicenseCodeAndStatusAndDeletedFalse(
-            String licenseCode, AgentStatus status);
+            String licenseCode, AgentLineageStatus status);
+
+    /** Agents that currently serve traffic: active identity with a version behind it. */
+    List<CustomAgentEntity> findByLicenseCodeAndStatusAndActiveVersionIsNotNullAndDeletedFalse(
+            String licenseCode, AgentLineageStatus status);
 
     List<CustomAgentEntity> findByStatusAndUpdatedAtBeforeAndDeletedFalse(
-            AgentStatus status, Instant updatedBefore);
+            AgentLineageStatus status, Instant updatedBefore);
 }
