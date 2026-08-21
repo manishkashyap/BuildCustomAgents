@@ -1,17 +1,24 @@
 package com.manish.customagents.agent.entity;
 
-import com.manish.customagents.agent.enums.AgentStatus;
+import com.manish.customagents.agent.enums.AgentLineageStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * The identity of an agent, independent of any single authored revision.
+ *
+ * <p>Definitions live in {@link AgentVersionEntity}. This row records which version currently
+ * serves traffic and which version is editable, so a published version and a new draft can
+ * coexist. The two single-valued slots make "at most one serving and one editable version"
+ * a structural guarantee rather than an application-level rule.
+ */
 @Entity
 @Table(
         name = "custom_agents",
@@ -36,16 +43,18 @@ public class CustomAgentEntity {
     @Column(length = 1000)
     private String description;
 
-    @Lob
-    @Column(name = "definition_json", nullable = false, columnDefinition = "LONGTEXT")
-    private String definitionJson;
-
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
-    private AgentStatus status;
+    private AgentLineageStatus status;
 
-    @Column(nullable = false)
-    private int version;
+    @Column(name = "active_version")
+    private Integer activeVersion;
+
+    @Column(name = "draft_version")
+    private Integer draftVersion;
+
+    @Column(name = "next_version", nullable = false)
+    private int nextVersion;
 
     @Column(nullable = false)
     private boolean deleted;
@@ -74,25 +83,10 @@ public class CustomAgentEntity {
             String name,
             String normalizedName,
             String description,
-            String definitionJson,
-            AgentStatus status,
-            int version,
-            boolean deleted,
-            Instant createdAt,
-            Instant updatedAt) {
-        this(id, licenseCode, name, normalizedName, description, definitionJson, status,
-                version, deleted, createdAt, updatedAt, "system", "system", null);
-    }
-
-    public CustomAgentEntity(
-            String id,
-            String licenseCode,
-            String name,
-            String normalizedName,
-            String description,
-            String definitionJson,
-            AgentStatus status,
-            int version,
+            AgentLineageStatus status,
+            Integer activeVersion,
+            Integer draftVersion,
+            int nextVersion,
             boolean deleted,
             Instant createdAt,
             Instant updatedAt,
@@ -104,15 +98,25 @@ public class CustomAgentEntity {
         this.name = name;
         this.normalizedName = normalizedName;
         this.description = description;
-        this.definitionJson = definitionJson;
         this.status = status;
-        this.version = version;
+        this.activeVersion = activeVersion;
+        this.draftVersion = draftVersion;
+        this.nextVersion = nextVersion;
         this.deleted = deleted;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.createdBy = createdBy;
         this.updatedBy = updatedBy;
         this.changeReason = changeReason;
+    }
+
+    /** Creates a new agent identity whose first draft is version 1. */
+    public static CustomAgentEntity newLineage(String id, String licenseCode, String name,
+            String normalizedName, String description, String actorId, String changeReason,
+            Instant now) {
+        return new CustomAgentEntity(id, licenseCode, name, normalizedName, description,
+                AgentLineageStatus.ACTIVE, null, 1, 2, false, now, now,
+                actorId, actorId, changeReason);
     }
 
     public String getId() {
@@ -135,16 +139,20 @@ public class CustomAgentEntity {
         return description;
     }
 
-    public String getDefinitionJson() {
-        return definitionJson;
-    }
-
-    public AgentStatus getStatus() {
+    public AgentLineageStatus getStatus() {
         return status;
     }
 
-    public int getVersion() {
-        return version;
+    public Integer getActiveVersion() {
+        return activeVersion;
+    }
+
+    public Integer getDraftVersion() {
+        return draftVersion;
+    }
+
+    public int getNextVersion() {
+        return nextVersion;
     }
 
     public boolean isDeleted() {
@@ -163,45 +171,69 @@ public class CustomAgentEntity {
     public String getUpdatedBy() { return updatedBy; }
     public String getChangeReason() { return changeReason; }
 
-    public void updateDraft(
-            String name, String normalizedName, String description, String definitionJson,
-            String actorId, String changeReason, Instant updatedAt) {
-        if (status != AgentStatus.DRAFT) {
-            throw new IllegalStateException("Only draft agents can be edited; current status is " + status);
+    public boolean hasDraft() {
+        return draftVersion != null;
+    }
+
+    public boolean hasActiveVersion() {
+        return activeVersion != null;
+    }
+
+    /**
+     * Reserves the next version number. Numbers are never reused, so discarding a draft
+     * does not let a later draft reuse its number.
+     */
+    public int allocateVersion(String actorId, String changeReason, Instant at) {
+        int allocated = nextVersion;
+        nextVersion = allocated + 1;
+        draftVersion = allocated;
+        touch(actorId, changeReason, at);
+        return allocated;
+    }
+
+    /** Applies draft-level edits that belong to the identity rather than the definition. */
+    public void renameDraft(String name, String normalizedName, String description,
+            String actorId, String changeReason, Instant at) {
+        if (status != AgentLineageStatus.ACTIVE) {
+            throw new IllegalStateException("Only active agents can be edited; current status is " + status);
         }
         this.name = Objects.requireNonNull(name);
         this.normalizedName = Objects.requireNonNull(normalizedName);
         this.description = description;
-        this.definitionJson = Objects.requireNonNull(definitionJson);
-        touch(actorId, changeReason, updatedAt);
+        touch(actorId, changeReason, at);
     }
 
-    public void publish(String actorId, String changeReason, Instant publishedAt) {
-        if (status != AgentStatus.DRAFT) {
+    /** Points the identity at a newly published version and clears the draft slot. */
+    public void promote(int version, String actorId, String changeReason, Instant at) {
+        if (status != AgentLineageStatus.ACTIVE) {
             throw new IllegalStateException(
-                    "Only draft agents can be published; current status is " + status);
+                    "Only active agents can be published; current status is " + status);
         }
-        status = AgentStatus.PUBLISHED;
-        touch(actorId, changeReason, publishedAt);
+        this.activeVersion = version;
+        if (draftVersion != null && draftVersion == version) {
+            this.draftVersion = null;
+        }
+        touch(actorId, changeReason, at);
     }
 
     public void beginRetiring(String actorId, String changeReason, Instant at) {
-        if (status != AgentStatus.PUBLISHED) {
-            throw new IllegalStateException("Only published agents can be retired; current status is " + status);
+        if (status != AgentLineageStatus.ACTIVE || activeVersion == null) {
+            throw new IllegalStateException(
+                    "Only published agents can be retired; current status is " + status);
         }
-        status = AgentStatus.RETIRING;
+        status = AgentLineageStatus.RETIRING;
         touch(actorId, changeReason, at);
     }
 
     public void finishRetiring(String actorId, String changeReason, Instant at) {
-        if (status != AgentStatus.RETIRING) throw new IllegalStateException("Agent is not retiring");
-        status = AgentStatus.RETIRED;
+        if (status != AgentLineageStatus.RETIRING) throw new IllegalStateException("Agent is not retiring");
+        status = AgentLineageStatus.RETIRED;
         touch(actorId, changeReason, at);
     }
 
-    public void restorePublished(String actorId, String changeReason, Instant at) {
-        if (status != AgentStatus.RETIRING) return;
-        status = AgentStatus.PUBLISHED;
+    public void restoreActive(String actorId, String changeReason, Instant at) {
+        if (status != AgentLineageStatus.RETIRING) return;
+        status = AgentLineageStatus.ACTIVE;
         touch(actorId, changeReason, at);
     }
 
