@@ -1,0 +1,9 @@
+.git
+.idea
+.vscode
+.DS_Store
+.spreadsheet-work
+outputs
+target
+**/target
+*.log
