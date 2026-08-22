@@ -34,9 +34,6 @@ import com.manish.customagents.runtime.repository.HumanInteractionResponseReposi
 import com.manish.customagents.runtime.repository.HumanResponseBatchRepository;
 import com.manish.customagents.runtime.repository.RuntimeOutboxEventRepository;
 import com.manish.customagents.runtime.tool.HumanInteractionRequestSpec;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -45,11 +42,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.HexFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
+import com.manish.customagents.contracts.JsonDigest;
 
 @Service
 public class HumanInteractionService {
@@ -456,13 +453,7 @@ public class HumanInteractionService {
                     if (item.answer() != null) node.set("answer", item.answer());
                     if (item.comment() != null) node.put("comment", item.comment());
                 });
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(
-                    json(canonical).getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(exception);
-        }
+        return JsonDigest.sha256(json(canonical));
     }
 
     private List<String> strings(String json) {

@@ -1,6 +1,6 @@
 package com.manish.customagents.agent.service;
 
-import com.manish.customagents.agent.model.RetirementEligibilityResponse;
+import com.manish.customagents.contracts.RetirementEligibilityResponse;
 import com.manish.customagents.error.RuntimeRetirementCheckException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -9,6 +9,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import com.manish.customagents.contracts.AgentApiHeaders;
 
 @Component
 public class RuntimeRetirementClient {
@@ -32,8 +33,8 @@ public class RuntimeRetirementClient {
         try {
             RetirementEligibilityResponse response = client.get()
                     .uri("/internal/v1/agents/{agentId}/retirement-eligibility", agentId)
-                    .header("X-Agent-License-Code", licenseCode)
-                    .header("X-Agent-Internal-Token", internalToken)
+                    .header(AgentApiHeaders.LICENSE_CODE, licenseCode)
+                    .header(AgentApiHeaders.INTERNAL_TOKEN, internalToken)
                     .retrieve()
                     .body(RetirementEligibilityResponse.class);
             if (response == null) throw new IllegalStateException("Runtime returned an empty response");

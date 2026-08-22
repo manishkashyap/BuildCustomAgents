@@ -14,7 +14,7 @@ import com.manish.customagents.agent.model.AgentStatusResponse;
 import com.manish.customagents.agent.model.CopyCustomAgentRequest;
 import com.manish.customagents.agent.model.CreateCustomAgentRequest;
 import com.manish.customagents.agent.model.CustomAgentResponse;
-import com.manish.customagents.agent.model.RetirementEligibilityResponse;
+import com.manish.customagents.contracts.RetirementEligibilityResponse;
 import com.manish.customagents.agent.repository.AgentAuditEventRepository;
 import com.manish.customagents.agent.repository.AgentCopyRequestRepository;
 import com.manish.customagents.agent.repository.AgentVersionRepository;
@@ -27,24 +27,19 @@ import com.manish.customagents.error.DuplicateAgentNameException;
 import com.manish.customagents.error.InvalidAgentStatusTransitionException;
 import com.manish.customagents.tool.entity.CustomToolEntity;
 import com.manish.customagents.tool.enums.ToolStatus;
-import com.manish.customagents.tool.enums.ToolType;
+import com.manish.customagents.contracts.ToolType;
 import com.manish.customagents.tool.repository.CustomToolRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -54,6 +49,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import com.manish.customagents.contracts.JsonDigest;
+import com.manish.customagents.contracts.ExecutableToolTypes;
 
 @Service
 public class CustomAgentService {
@@ -164,7 +161,7 @@ public class CustomAgentService {
     public CustomAgentResponse copy(String licenseCode, String sourceAgentId,
             CopyCustomAgentRequest request, String idempotencyKey, String actorId, String changeReason) {
         String tenant = licenseCode.strip();
-        String hash = sha256(sourceAgentId.strip() + "\n" + request.name().strip());
+        String hash = JsonDigest.sha256(sourceAgentId.strip() + "\n" + request.name().strip());
         AgentCopyRequestEntity replay = copyRepository
                 .findByLicenseCodeAndIdempotencyKey(tenant, idempotencyKey).orElse(null);
         if (replay != null) {
@@ -198,6 +195,17 @@ public class CustomAgentService {
         return response(copied, copiedDefinition);
     }
 
+    /**
+     * Deliberately not {@code @Transactional}.
+     *
+     * <p>Retirement is a three-phase handshake and each phase must commit on its own:
+     * RETIRING has to be visible to the runtime before the eligibility call is made, and it has
+     * to stay visible if this process dies so {@link #recoverStaleRetirements} can find the
+     * abandoned attempt. Wrapping this method — or the class — in a single transaction makes the
+     * runtime's eligibility query run against uncommitted state, so it never observes RETIRING,
+     * concurrent runs stop being excluded, and the race the state exists to close reopens
+     * silently. {@code retiresOnlyAfterRetiringStateIsCommitted} guards the ordering.
+     */
     public AgentStatusResponse updateStatus(String licenseCode, String agentId,
             AgentStatus requestedStatus, String actorId, String changeReason) {
         if (requestedStatus == AgentStatus.PUBLISHED) {
@@ -220,7 +228,7 @@ public class CustomAgentService {
                 .findByStatusAndUpdatedAtBeforeAndDeletedFalse(AgentLineageStatus.RETIRING, cutoff)) {
             lineage.restoreActive("system", "Recovered interrupted retirement", clock.instant());
             repository.save(lineage);
-            audit(snapshotOf(lineage), "RETIREMENT_RECOVERED", "system",
+            audit(reportedSnapshot(lineage), "RETIREMENT_RECOVERED", "system",
                     "Recovered interrupted retirement");
         }
     }
@@ -228,16 +236,13 @@ public class CustomAgentService {
     private AgentStatusResponse publish(String licenseCode, String agentId,
             String actorId, String changeReason) {
         CustomAgentEntity lineage = require(licenseCode, agentId);
-        if (lineage.getStatus() != AgentLineageStatus.ACTIVE) {
-            throw new InvalidAgentStatusTransitionException(
-                    apiStatus(snapshotOf(lineage)), AgentStatus.PUBLISHED);
-        }
-        if (!lineage.hasDraft()) {
-            if (lineage.hasActiveVersion()) {
-                return statusResponse(snapshotOf(lineage));
+        if (lineage.getStatus() != AgentLineageStatus.ACTIVE || !lineage.hasDraft()) {
+            // Publishing an already-published agent with nothing pending is a no-op.
+            if (lineage.getStatus() == AgentLineageStatus.ACTIVE && lineage.hasActiveVersion()) {
+                return statusResponse(reportedSnapshot(lineage));
             }
             throw new InvalidAgentStatusTransitionException(
-                    apiStatus(snapshotOf(lineage)), AgentStatus.PUBLISHED);
+                    apiStatus(reportedSnapshot(lineage)), AgentStatus.PUBLISHED);
         }
         AgentVersionEntity draft = requireDraft(lineage);
         validatePublishedDependencies(lineage, draft);
@@ -247,7 +252,7 @@ public class CustomAgentService {
         Integer previousActive = lineage.getActiveVersion();
         draft.publish(actorId, reason, now);
         versionRepository.saveAndFlush(draft);
-        if (previousActive != null && previousActive != draft.getVersion()) {
+        if (previousActive != null && previousActive.intValue() != draft.getVersion()) {
             AgentVersionEntity superseded = requireVersion(lineage, previousActive);
             superseded.supersede(actorId, reason, now);
             versionRepository.saveAndFlush(superseded);
@@ -265,15 +270,15 @@ public class CustomAgentService {
         AgentStatusResponse marked = transactions.execute(status -> {
             CustomAgentEntity lineage = require(licenseCode, agentId);
             if (lineage.getStatus() == AgentLineageStatus.RETIRED) {
-                return statusResponse(snapshotOf(lineage));
+                return statusResponse(reportedSnapshot(lineage));
             }
             if (lineage.getStatus() != AgentLineageStatus.ACTIVE || !lineage.hasActiveVersion()) {
                 throw new InvalidAgentStatusTransitionException(
-                        apiStatus(snapshotOf(lineage)), AgentStatus.RETIRED);
+                        apiStatus(reportedSnapshot(lineage)), AgentStatus.RETIRED);
             }
             lineage.beginRetiring(actorId, normalizeNullable(changeReason), clock.instant());
             repository.saveAndFlush(lineage);
-            return statusResponse(snapshotOf(lineage));
+            return statusResponse(reportedSnapshot(lineage));
         });
         if (marked.status() == AgentStatus.RETIRED) return marked;
 
@@ -290,12 +295,15 @@ public class CustomAgentService {
                 String reason = normalizeNullable(changeReason);
                 lineage.finishRetiring(actorId, reason, now);
                 repository.saveAndFlush(lineage);
-                for (AgentVersionEntity version :
-                        versionRepository.findByAgentIdOrderByVersionAsc(lineage.getId())) {
-                    version.retire(actorId, reason, now);
-                    versionRepository.save(version);
+                List<AgentVersionEntity> versions =
+                        versionRepository.findByAgentIdOrderByVersionAsc(lineage.getId());
+                for (AgentVersionEntity version : versions) {
+                    if (version.isRetirable()) {
+                        version.retire(actorId, reason, now);
+                    }
                 }
-                Snapshot snapshot = snapshotOf(lineage);
+                versionRepository.saveAll(versions);
+                Snapshot snapshot = new Snapshot(lineage, reportable(lineage, versions));
                 audit(snapshot, "RETIRED", actorId, changeReason);
                 return statusResponse(snapshot);
             });
@@ -319,8 +327,9 @@ public class CustomAgentService {
         CustomAgentEntity lineage = CustomAgentEntity.newLineage(
                 UUID.randomUUID().toString(), tenant, definition.name(), normalizedName,
                 definition.description(), actorId, reason, now);
+        int version = lineage.allocateVersion(actorId, reason, now);
         AgentVersionEntity draft = AgentVersionEntity.newDraft(
-                UUID.randomUUID().toString(), lineage.getId(), tenant, lineage.getDraftVersion(),
+                UUID.randomUUID().toString(), lineage.getId(), tenant, version,
                 definitionJsonMapper.write(definition), actorId, reason, now);
         try {
             repository.saveAndFlush(lineage);
@@ -372,6 +381,11 @@ public class CustomAgentService {
             CustomToolEntity tool = tools.get(name);
             if (tool == null) throw new AgentDependencyException(
                     "Allowed tool is missing or not published: " + name);
+            // Catch unexecutable types here rather than mid-run, after the model has spent turns.
+            if (!ExecutableToolTypes.isExecutable(tool.getType())) {
+                throw new AgentDependencyException(
+                        "Allowed tool has no runtime executor for type " + tool.getType() + ": " + name);
+            }
             if (tool.getType() == ToolType.CUSTOM_AGENT) {
                 JsonNode configuration = readTree(tool.getDefinitionJson()).path("configuration");
                 String targetId = configuration.path("agentId").asText("");
@@ -437,31 +451,44 @@ public class CustomAgentService {
     }
 
     private Snapshot requireSnapshot(String licenseCode, String agentId) {
-        return snapshotOf(require(licenseCode, agentId));
+        return reportedSnapshot(require(licenseCode, agentId));
     }
 
-    /** Pairs an identity with the version callers should see: the serving one, else the draft. */
-    private Snapshot snapshotOf(CustomAgentEntity lineage) {
+    /**
+     * Loads the reportable version for an identity. Prefer building a {@link Snapshot} from a
+     * version already in hand; this helper costs a query, so it belongs on paths that have none.
+     */
+    private Snapshot reportedSnapshot(CustomAgentEntity lineage) {
         return new Snapshot(lineage, reportable(
                 lineage, versionRepository.findByAgentIdOrderByVersionAsc(lineage.getId())));
     }
 
+    /**
+     * The version callers see: the one currently serving, else the editable draft.
+     *
+     * <p>Both pointers missing, or pointing at a version row that is absent, means the identity
+     * and its versions disagree. That is an invariant violation, not a request problem, so it
+     * fails loudly rather than silently reporting some other version as the agent's state.
+     */
     private AgentVersionEntity reportable(CustomAgentEntity lineage, List<AgentVersionEntity> versions) {
         Integer preferred = lineage.hasActiveVersion()
                 ? lineage.getActiveVersion() : lineage.getDraftVersion();
-        Optional<AgentVersionEntity> match = versions.stream()
-                .filter(version -> preferred != null && version.getVersion() == preferred)
-                .findFirst();
-        if (match.isPresent()) return match.get();
+        if (preferred == null) {
+            throw new IllegalStateException(
+                    "Agent " + lineage.getId() + " has neither an active nor a draft version");
+        }
         return versions.stream()
-                .max((left, right) -> Integer.compare(left.getVersion(), right.getVersion()))
-                .orElseThrow(() -> new AgentNotFoundException(lineage.getId()));
+                .filter(version -> version.getVersion() == preferred.intValue())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Agent " + lineage.getId() + " points at version " + preferred
+                                + ", which does not exist"));
     }
 
     private AgentVersionEntity requireDraft(CustomAgentEntity lineage) {
         if (!lineage.hasDraft()) {
             throw new InvalidAgentStatusTransitionException(
-                    apiStatus(snapshotOf(lineage)), AgentStatus.DRAFT);
+                    apiStatus(reportedSnapshot(lineage)), AgentStatus.DRAFT);
         }
         return requireVersion(lineage, lineage.getDraftVersion());
     }
@@ -540,12 +567,4 @@ public class CustomAgentService {
         return value == null || value.isNull() ? null : value;
     }
 
-    private String sha256(String value) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
-    }
 }

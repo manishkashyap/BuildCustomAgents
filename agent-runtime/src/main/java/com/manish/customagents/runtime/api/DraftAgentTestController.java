@@ -24,14 +24,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.manish.customagents.contracts.AgentApiHeaders;
+import com.manish.customagents.contracts.LicenseCode;
 
 @Validated
 @RestController
 @RequestMapping(path = "/api/v1/agent-test-runs", produces = MediaType.APPLICATION_JSON_VALUE)
 public class DraftAgentTestController {
 
-    private static final String LICENSE_CODE_HEADER = "X-Agent-License-Code";
-    private static final String USER_ID_HEADER = "X-Agent-User-Id";
 
     private final DraftAgentTestService testService;
 
@@ -61,13 +61,10 @@ public class DraftAgentTestController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DraftAgentTestResponse> test(
             @Parameter(description = "Tenant license code", required = true)
-            @RequestHeader(LICENSE_CODE_HEADER)
-            @NotBlank
-            @Pattern(
-                    regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
-                    message = "must contain only letters, numbers, dots, underscores, or hyphens")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE)
+            @LicenseCode
             String licenseCode,
-            @RequestHeader(name = USER_ID_HEADER, defaultValue = "local-editor")
+            @RequestHeader(name = AgentApiHeaders.USER_ID, defaultValue = "local-editor")
             @NotBlank @Size(max = 128) String requestedBy,
             Authentication authentication,
             @Valid @RequestBody DraftAgentTestRequest request) {

@@ -3,13 +3,14 @@ package com.manish.customagents.tool.model;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.manish.customagents.tool.enums.ToolType;
+import com.manish.customagents.contracts.ToolType;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Set;
+import com.manish.customagents.contracts.HumanInteractionPolicyRules;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CreateToolRequest(
@@ -31,7 +32,6 @@ public record CreateToolRequest(
             Set.of("READ", "WRITE", "EXTERNAL_COMMUNICATION", "SENSITIVE_DATA", "DESTRUCTIVE");
     private static final Set<String> RISK_LEVELS =
             Set.of("LOW", "MEDIUM", "HIGH", "DESTRUCTIVE");
-    private static final Set<String> AUDIENCE_TYPES = Set.of("RUN_REQUESTER", "ROLE", "GROUP");
     private static final Set<String> REJECTION_BEHAVIOURS = Set.of("RETURN_TO_AGENT", "FAIL_RUN");
     private static final Set<String> EXPIRY_BEHAVIOURS = Set.of("REJECT", "FAIL_RUN", "ESCALATE");
 
@@ -80,29 +80,12 @@ public record CreateToolRequest(
         if (!allowSelfApproval.isMissingNode() && !allowSelfApproval.isBoolean()) {
             return false;
         }
-        long expiry = approval.path("expiresAfterSeconds").asLong(86_400);
-        if (expiry < 60 || expiry > 604_800
+        if (!HumanInteractionPolicyRules.isExpiryInRange(approval, "expiresAfterSeconds")
                 || !REJECTION_BEHAVIOURS.contains(approval.path("onReject").asText("RETURN_TO_AGENT"))
                 || !EXPIRY_BEHAVIOURS.contains(approval.path("onExpire").asText("REJECT"))) {
             return false;
         }
-        JsonNode audience = approval.path("audience");
-        if (audience.isMissingNode()) {
-            return true;
-        }
-        if (!audience.isObject()) {
-            return false;
-        }
-        String audienceType = audience.path("type").asText("");
-        if (!AUDIENCE_TYPES.contains(audienceType)) {
-            return false;
-        }
-        JsonNode values = audience.path("values");
-        if ((audienceType.equals("ROLE") || audienceType.equals("GROUP"))
-                && (!values.isArray() || values.isEmpty())) {
-            return false;
-        }
-        return values.isMissingNode() || values.isArray();
+        return HumanInteractionPolicyRules.isAudienceValid(approval.path("audience"));
     }
 
     @AssertTrue(message = "HTTP tools require an absolute http/https configuration.url and a supported configuration.method")

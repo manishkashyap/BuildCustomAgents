@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.manish.customagents.contracts.AgentApiHeaders;
 
 @WebMvcTest(CustomToolController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -59,7 +60,7 @@ class CustomToolControllerTest {
                 "tool-1", "tenant-1", ToolStatus.DRAFT, 1, definition, now, now));
 
         mockMvc.perform(post("/api/v1/tools")
-                        .header(CustomToolController.LICENSE_CODE_HEADER, "tenant-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "tenant-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_REQUEST))
                 .andExpect(status().isCreated())
@@ -76,7 +77,7 @@ class CustomToolControllerTest {
                         "tool-1", "tenant-1", ToolStatus.PUBLISHED, 1, now));
 
         mockMvc.perform(patch("/api/v1/tools/{toolId}/status", "tool-1")
-                        .header(CustomToolController.LICENSE_CODE_HEADER, "tenant-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "tenant-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PUBLISHED\"}"))
                 .andExpect(status().isOk())
@@ -91,7 +92,7 @@ class CustomToolControllerTest {
                 "tool-1", "tenant-1", ToolStatus.DRAFT, 1, definition, now, now)));
 
         mockMvc.perform(get("/api/v1/tools")
-                        .header(CustomToolController.LICENSE_CODE_HEADER, "tenant-1"))
+                        .header(AgentApiHeaders.LICENSE_CODE, "tenant-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value("tool-1"))
                 .andExpect(jsonPath("$[0].definition.name").value("campaign.get"));
@@ -107,12 +108,12 @@ class CustomToolControllerTest {
         when(toolService.updateDraft(eq("tenant-1"), eq("tool-1"), any())).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/tools/{toolId}", "tool-1")
-                        .header(CustomToolController.LICENSE_CODE_HEADER, "tenant-1"))
+                        .header(AgentApiHeaders.LICENSE_CODE, "tenant-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.definition.type").value("HTTP"));
 
         mockMvc.perform(patch("/api/v1/tools/{toolId}", "tool-1")
-                        .header(CustomToolController.LICENSE_CODE_HEADER, "tenant-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "tenant-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_REQUEST))
                 .andExpect(status().isOk())

@@ -19,6 +19,7 @@
     <description>Parent build for the Custom Agent Platform product</description>
 
     <modules>
+        <module>agent-contracts</module>
         <module>agent-management</module>
         <module>agent-runtime</module>
     </modules>

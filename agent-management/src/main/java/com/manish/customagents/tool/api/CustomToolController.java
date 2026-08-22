@@ -25,13 +25,14 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import com.manish.customagents.contracts.AgentApiHeaders;
+import com.manish.customagents.contracts.LicenseCode;
 
 @Validated
 @RestController
 @RequestMapping(path = "/api/v1/tools", produces = MediaType.APPLICATION_JSON_VALUE)
 public class CustomToolController {
 
-    public static final String LICENSE_CODE_HEADER = "X-Agent-License-Code";
 
     private final CustomToolService toolService;
 
@@ -42,11 +43,8 @@ public class CustomToolController {
     @Operation(summary = "Create a dynamic tool definition")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ToolResponse> create(
-            @RequestHeader(LICENSE_CODE_HEADER)
-            @NotBlank
-            @Pattern(
-                    regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
-                    message = "must contain only letters, numbers, dots, underscores, or hyphens")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE)
+            @LicenseCode
             String licenseCode,
             @Valid @RequestBody CreateToolRequest request) {
         ToolResponse response = toolService.create(licenseCode, request);
@@ -60,11 +58,8 @@ public class CustomToolController {
     @Operation(summary = "List dynamic tool definitions")
     @GetMapping
     public ResponseEntity<List<ToolResponse>> list(
-            @RequestHeader(LICENSE_CODE_HEADER)
-            @NotBlank
-            @Pattern(
-                    regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
-                    message = "must contain only letters, numbers, dots, underscores, or hyphens")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE)
+            @LicenseCode
             String licenseCode) {
         return ResponseEntity.ok(toolService.list(licenseCode));
     }
@@ -72,11 +67,8 @@ public class CustomToolController {
     @Operation(summary = "Get a dynamic tool definition")
     @GetMapping("/{toolId}")
     public ResponseEntity<ToolResponse> get(
-            @RequestHeader(LICENSE_CODE_HEADER)
-            @NotBlank
-            @Pattern(
-                    regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
-                    message = "must contain only letters, numbers, dots, underscores, or hyphens")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE)
+            @LicenseCode
             String licenseCode,
             @PathVariable @NotBlank @Size(max = 36) String toolId) {
         return ResponseEntity.ok(toolService.get(licenseCode, toolId));
@@ -85,11 +77,8 @@ public class CustomToolController {
     @Operation(summary = "Update a draft dynamic tool definition")
     @PatchMapping(path = "/{toolId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ToolResponse> update(
-            @RequestHeader(LICENSE_CODE_HEADER)
-            @NotBlank
-            @Pattern(
-                    regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
-                    message = "must contain only letters, numbers, dots, underscores, or hyphens")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE)
+            @LicenseCode
             String licenseCode,
             @PathVariable @NotBlank @Size(max = 36) String toolId,
             @Valid @RequestBody CreateToolRequest request) {
@@ -99,11 +88,8 @@ public class CustomToolController {
     @Operation(summary = "Update dynamic tool status")
     @PatchMapping(path = "/{toolId}/status", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ToolStatusResponse> updateStatus(
-            @RequestHeader(LICENSE_CODE_HEADER)
-            @NotBlank
-            @Pattern(
-                    regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
-                    message = "must contain only letters, numbers, dots, underscores, or hyphens")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE)
+            @LicenseCode
             String licenseCode,
             @PathVariable @NotBlank @Size(max = 36) String toolId,
             @Valid @RequestBody UpdateToolStatusRequest request) {

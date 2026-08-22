@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.manish.customagents.runtime.model.ToolDefinition;
 
 import java.util.Objects;
+import com.manish.customagents.contracts.ToolType;
 
 public record PublishedToolDefinition(
         String id,

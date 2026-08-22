@@ -36,7 +36,7 @@ import com.manish.customagents.runtime.tool.PublishedToolDefinition;
 import com.manish.customagents.runtime.tool.ToolExecutionResult;
 import com.manish.customagents.runtime.tool.ToolExecutor;
 import com.manish.customagents.runtime.tool.ToolExecutorRegistry;
-import com.manish.customagents.runtime.tool.ToolType;
+import com.manish.customagents.contracts.ToolType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -310,7 +310,7 @@ class DraftAgentTestServiceTest {
             String status,
             int version,
             Set<String> tools) {
-        return new StoredAgentDefinition(id, LICENSE, status, version, new PublishedAgentDefinition(
+        return new StoredAgentDefinition(id, LICENSE, status, "ACTIVE", version, new PublishedAgentDefinition(
                 "Test Agent", "Tests an agent", "Analyst", "Complete the task",
                 List.of(), "JSON", objectMapper.createObjectNode(), objectMapper.createObjectNode(),
                 List.of(), tools, objectMapper.createObjectNode()));

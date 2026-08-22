@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Set;
+import com.manish.customagents.contracts.HumanInteractionPolicyRules;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CreateCustomAgentRequest(
@@ -24,6 +25,9 @@ public record CreateCustomAgentRequest(
         @NotNull @Size(max = 20) List<@Valid AgentExample> examples,
         @NotNull @Size(max = 100) Set<@NotBlank @Size(max = 150) String> allowedTools,
         JsonNode humanInteractionPolicy) {
+
+    private static final Set<String> ON_EXPIRE_BEHAVIOURS =
+            Set.of("FAIL_CHILD", "FAIL_ROOT", "ESCALATE", "USE_DEFAULT");
 
     @AssertTrue(message = "outputSchema must be a JSON object when provided")
     @JsonIgnore
@@ -56,31 +60,14 @@ public record CreateCustomAgentRequest(
         if (!clarification.isObject()) {
             return false;
         }
-        long expiry = clarification.path("expiresAfterSeconds").asLong(86_400);
         long maximum = clarification.path("maxRequestsPerRootRun").asLong(20);
-        if (expiry < 60 || expiry > 604_800 || maximum < 1 || maximum > 100) {
+        if (!HumanInteractionPolicyRules.isExpiryInRange(clarification, "expiresAfterSeconds")
+                || maximum < 1 || maximum > 100) {
             return false;
         }
-        if (!Set.of("FAIL_CHILD", "FAIL_ROOT", "ESCALATE", "USE_DEFAULT")
-                .contains(clarification.path("onExpire").asText("FAIL_CHILD"))) {
+        if (!ON_EXPIRE_BEHAVIOURS.contains(clarification.path("onExpire").asText("FAIL_CHILD"))) {
             return false;
         }
-        JsonNode audience = clarification.path("defaultAudience");
-        if (audience.isMissingNode()) {
-            return true;
-        }
-        if (!audience.isObject()) {
-            return false;
-        }
-        String type = audience.path("type").asText("");
-        if (!Set.of("RUN_REQUESTER", "ROLE", "GROUP").contains(type)) {
-            return false;
-        }
-        JsonNode values = audience.path("values");
-        if ((type.equals("ROLE") || type.equals("GROUP"))
-                && (!values.isArray() || values.isEmpty())) {
-            return false;
-        }
-        return values.isMissingNode() || values.isArray();
+        return HumanInteractionPolicyRules.isAudienceValid(clarification.path("defaultAudience"));
     }
 }

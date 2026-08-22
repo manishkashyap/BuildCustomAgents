@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.manish.customagents.error.DuplicateToolNameException;
 import com.manish.customagents.tool.enums.ToolStatus;
-import com.manish.customagents.tool.enums.ToolType;
+import com.manish.customagents.contracts.ToolType;
 import com.manish.customagents.tool.entity.CustomToolEntity;
 import com.manish.customagents.tool.model.CreateToolRequest;
 import com.manish.customagents.tool.repository.CustomToolRepository;

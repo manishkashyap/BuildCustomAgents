@@ -32,6 +32,7 @@ import com.manish.customagents.runtime.model.MockedToolCall;
 import com.manish.customagents.runtime.model.ModelSelection;
 import com.manish.customagents.runtime.model.TestHumanResponse;
 import com.manish.customagents.runtime.model.TokenUsage;
+import com.manish.customagents.contracts.JsonDigest;
 import com.manish.customagents.runtime.model.ToolCall;
 import com.manish.customagents.runtime.tool.BuiltInToolExecutor;
 import com.manish.customagents.runtime.tool.HumanInteractionRequestSpec;
@@ -40,17 +41,13 @@ import com.manish.customagents.runtime.tool.ToolExecutionContext;
 import com.manish.customagents.runtime.tool.ToolExecutionRequest;
 import com.manish.customagents.runtime.tool.ToolExecutionResult;
 import com.manish.customagents.runtime.tool.ToolExecutorRegistry;
-import com.manish.customagents.runtime.tool.ToolType;
+import com.manish.customagents.contracts.ToolType;
 import com.manish.customagents.runtime.tool.UnsupportedToolTypeException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -210,7 +207,7 @@ public class DraftAgentTestService {
             TestSession session) {
         String binding = binding(tool, call.arguments());
         if (requiresApproval(tool)) {
-            String interactionKey = sha256("APPROVAL:" + binding);
+            String interactionKey = JsonDigest.sha256("APPROVAL:" + binding);
             ResolvedHumanResponse response = session.responses.get(interactionKey);
             if (response == null) {
                 return TestOutcome.pending(pendingApproval(session, tool, call, binding, interactionKey));
@@ -473,7 +470,7 @@ public class DraftAgentTestService {
         new TreeMap<>(command.mockToolResults()).forEach((name, value) ->
                 mocks.set(name, canonical(value)));
         fingerprint.set("mockToolResults", mocks);
-        return sha256(writeJson(fingerprint));
+        return JsonDigest.sha256(writeJson(fingerprint));
     }
 
     private JsonNode canonical(JsonNode value) {
@@ -491,12 +488,12 @@ public class DraftAgentTestService {
     }
 
     private String clarificationKey(HumanInteractionRequestSpec spec) {
-        return sha256("CLARIFICATION:" + spec.category() + ":" + spec.question()
+        return JsonDigest.sha256("CLARIFICATION:" + spec.category() + ":" + spec.question()
                 + ":" + writeJson(canonical(spec.request())));
     }
 
     private String binding(PublishedToolDefinition tool, JsonNode arguments) {
-        return sha256(tool.id() + ":" + tool.version() + ":" + writeJson(canonical(arguments)));
+        return JsonDigest.sha256(tool.id() + ":" + tool.version() + ":" + writeJson(canonical(arguments)));
     }
 
     private String operation(PublishedToolDefinition tool) {
@@ -526,14 +523,6 @@ public class DraftAgentTestService {
         }
     }
 
-    private String sha256(String value) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
-    }
 
     private String safeMessage(Throwable exception) {
         String message = exception.getMessage();

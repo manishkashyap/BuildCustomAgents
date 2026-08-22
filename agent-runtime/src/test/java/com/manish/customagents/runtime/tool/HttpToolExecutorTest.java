@@ -17,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import com.manish.customagents.contracts.ToolType;
 
 class HttpToolExecutorTest {
 

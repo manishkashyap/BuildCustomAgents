@@ -1,0 +1,39 @@
+{
+  "name": "weather_get_forecast",
+  "description": "Fetch current conditions and a daily forecast for a coordinate from the Open-Meteo forecast API. Returns 'current' (time, temperature_2m in °C, relative_humidity_2m in %, wind_speed_10m in km/h, weather_code as a WMO code) and 'daily' (parallel arrays: time, temperature_2m_max, temperature_2m_min, precipitation_probability_max). Units are echoed in 'current_units' and 'daily_units'. Timezone is resolved from the coordinate. Requires coordinates, so resolve a place name with weather_geocode_place first.",
+  "type": "HTTP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "latitude": {
+        "type": "number",
+        "description": "Latitude in decimal degrees, -90 to 90.",
+        "minimum": -90,
+        "maximum": 90
+      },
+      "longitude": {
+        "type": "number",
+        "description": "Longitude in decimal degrees, -180 to 180.",
+        "minimum": -180,
+        "maximum": 180
+      },
+      "forecast_days": {
+        "type": "integer",
+        "description": "Number of days to forecast, 1 to 16. Use 3 unless the user asks for a different range. This value is required: the URL template cannot expand without it.",
+        "minimum": 1,
+        "maximum": 16
+      }
+    },
+    "required": ["latitude", "longitude", "forecast_days"],
+    "additionalProperties": false
+  },
+  "configuration": {
+    "method": "GET",
+    "url": "https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&forecast_days={forecast_days}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto"
+  },
+  "executionPolicy": {
+    "operation": "READ",
+    "riskLevel": "LOW",
+    "approval": { "required": false }
+  }
+}

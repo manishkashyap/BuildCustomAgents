@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.manish.customagents.runtime.model.RetirementEligibilityResponse;
+import com.manish.customagents.contracts.RetirementEligibilityResponse;
 import com.manish.customagents.runtime.service.AgentRetirementEligibilityService;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
