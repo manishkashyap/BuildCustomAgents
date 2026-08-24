@@ -23,6 +23,7 @@ public record CreateToolRequest(
         @NotBlank @Size(max = 1000) String description,
         @NotNull ToolType type,
         @NotNull JsonNode inputSchema,
+        JsonNode outputSchema,
         @NotNull JsonNode configuration,
         JsonNode executionPolicy) {
 
@@ -39,6 +40,12 @@ public record CreateToolRequest(
     @JsonIgnore
     public boolean isInputSchemaObject() {
         return inputSchema == null || inputSchema.isObject();
+    }
+
+    @AssertTrue(message = "outputSchema must be a JSON object when provided")
+    @JsonIgnore
+    public boolean isOutputSchemaObject() {
+        return outputSchema == null || outputSchema.isObject();
     }
 
     @AssertTrue(message = "configuration must be a JSON object")

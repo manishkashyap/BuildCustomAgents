@@ -1,0 +1,100 @@
+{
+  "name": "market_get_quote",
+  "description": "Retrieve the current top of book for one instrument: bid, ask, bidQuantity, askQuantity, mid, spreadAbsolute, spreadPercent, lastPrice, quoteVolume24h, ageMs, and spreadWithinLimit measured against the desk's configured maximum spread. Call this again immediately before submitting an order: the analysis snapshot ages, and a setup that was valid two minutes ago may no longer be executable at an acceptable price.",
+  "type": "HTTP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Exchange symbol to quote, for example BTCUSDT.",
+        "pattern": "^[A-Z0-9]{5,20}$"
+      }
+    },
+    "required": [
+      "symbol"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "symbol": {
+        "type": "string"
+      },
+      "asOf": {
+        "type": "string"
+      },
+      "quote": {
+        "type": "object",
+        "properties": {
+          "bid": {
+            "type": "number"
+          },
+          "ask": {
+            "type": "number"
+          },
+          "bidQuantity": {
+            "type": "number"
+          },
+          "askQuantity": {
+            "type": "number"
+          },
+          "mid": {
+            "type": "number"
+          },
+          "spreadAbsolute": {
+            "type": "number"
+          },
+          "spreadPercent": {
+            "type": "number"
+          },
+          "lastPrice": {
+            "type": "number"
+          },
+          "quoteVolume24h": {
+            "type": "number"
+          },
+          "exchangeTimeMs": {
+            "type": "integer"
+          },
+          "ageMs": {
+            "type": "integer",
+            "description": "Age of the exchange timestamp."
+          },
+          "spreadWithinLimit": {
+            "type": "boolean",
+            "description": "False means NO_TRADE, SPREAD_TOO_WIDE."
+          },
+          "maxSpreadPercent": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "required": [
+      "ok",
+      "quote"
+    ]
+  },
+  "configuration": {
+    "method": "GET",
+    "url": "http://host.docker.internal:8090/quote?symbol={symbol}"
+  },
+  "executionPolicy": {
+    "operation": "READ",
+    "riskLevel": "LOW",
+    "approval": {
+      "required": false
+    }
+  }
+}

@@ -83,6 +83,10 @@ curl --request POST 'http://localhost:8080/api/v1/tools' \
       "properties": {"campaignId": {"type": "string"}},
       "required": ["campaignId"]
     },
+    "outputSchema": {
+      "type": "object",
+      "properties": {"status": {"type": "string"}, "sentAt": {"type": "string"}}
+    },
     "configuration": {
       "method": "GET",
       "url": "https://api.example.com/v1/campaigns/{campaignId}"
@@ -111,11 +115,20 @@ curl --request PATCH 'http://localhost:8080/api/v1/tools/{tool-id}/status' \
   --data '{"status":"PUBLISHED"}'
 ```
 
+`outputSchema` is optional and documents what the tool returns. Function-calling APIs have no field
+for a response shape, so the runtime appends it to the description it sends the provider — which
+means a tool can describe its response as a schema instead of as prose, and the model gets a
+contract rather than a paragraph.
+
 HTTP tool destinations are denied unless the host is allowlisted:
 
 ```bash
 export AGENT_HTTP_TOOL_ALLOWED_HOSTS=api.example.com
 ```
+
+Publishing is refused with `422` if a definition would not fit in a model request. The budgets are
+per tool, per agent, and per agent-plus-its-tools; see `PromptBudget`. Drafts are not checked, so
+work in progress can always be saved.
 
 ## Create and publish an agent
 

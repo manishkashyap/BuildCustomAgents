@@ -3,6 +3,7 @@ package com.manish.customagents.tool.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -10,6 +11,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.manish.customagents.error.DuplicateToolNameException;
 import com.manish.customagents.tool.enums.ToolStatus;
 import com.manish.customagents.contracts.ToolType;
+import com.manish.customagents.budget.DefinitionBudgetValidator;
+import com.manish.customagents.error.DefinitionBudgetExceededException;
+import com.manish.customagents.contracts.PromptBudget;
 import com.manish.customagents.tool.entity.CustomToolEntity;
 import com.manish.customagents.tool.model.CreateToolRequest;
 import com.manish.customagents.tool.repository.CustomToolRepository;
@@ -42,6 +46,7 @@ class CustomToolServiceTest {
         service = new CustomToolService(
                 repository,
                 new ToolDefinitionJsonMapper(objectMapper),
+                new DefinitionBudgetValidator(objectMapper),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -83,6 +88,29 @@ class CustomToolServiceTest {
         assertThat(response.status()).isEqualTo(ToolStatus.PUBLISHED);
         assertThat(response.updatedAt()).isEqualTo(NOW);
         verify(repository).saveAndFlush(entity);
+    }
+
+    @Test
+    void refusesToPublishAToolThatIsOverThePromptBudget() {
+        CreateToolRequest oversized = new CreateToolRequest(
+                "campaign.get",
+                "x".repeat(PromptBudget.MAX_TOOL_CHARACTERS + 1),
+                ToolType.HTTP,
+                objectMapper.createObjectNode().put("type", "object"),
+                null,
+                objectMapper.createObjectNode()
+                        .put("method", "GET").put("url", "https://api.example.com/campaigns"),
+                null);
+        CustomToolEntity entity = entity(oversized, ToolStatus.DRAFT);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse("tool-1", "tenant-1"))
+                .thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> service.updateStatus("tenant-1", "tool-1", ToolStatus.PUBLISHED))
+                .isInstanceOf(DefinitionBudgetExceededException.class);
+
+        // The draft is left exactly as it was; only publishing is refused.
+        assertThat(entity.getStatus()).isEqualTo(ToolStatus.DRAFT);
+        verify(repository, never()).saveAndFlush(entity);
     }
 
     @Test
@@ -130,6 +158,7 @@ class CustomToolServiceTest {
                 "Gets a campaign",
                 ToolType.HTTP,
                 objectMapper.createObjectNode().put("type", "object"),
+                null,
                 objectMapper.createObjectNode()
                         .put("method", "GET")
                         .put("url", "https://api.example.com/campaigns/{campaignId}"),

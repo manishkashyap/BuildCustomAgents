@@ -27,6 +27,7 @@ import com.manish.customagents.error.DuplicateAgentNameException;
 import com.manish.customagents.error.InvalidAgentStatusTransitionException;
 import com.manish.customagents.tool.entity.CustomToolEntity;
 import com.manish.customagents.tool.enums.ToolStatus;
+import com.manish.customagents.budget.DefinitionBudgetValidator;
 import com.manish.customagents.contracts.ToolType;
 import com.manish.customagents.tool.repository.CustomToolRepository;
 import jakarta.validation.ConstraintViolation;
@@ -66,6 +67,7 @@ public class CustomAgentService {
     private final AgentCopyRequestRepository copyRepository;
     private final AgentAuditEventRepository auditRepository;
     private final AgentDefinitionJsonMapper definitionJsonMapper;
+    private final DefinitionBudgetValidator budgetValidator;
     private final RuntimeRetirementClient runtimeRetirementClient;
     private final ObjectMapper objectMapper;
     private final Validator validator;
@@ -79,6 +81,7 @@ public class CustomAgentService {
             AgentCopyRequestRepository copyRepository,
             AgentAuditEventRepository auditRepository,
             AgentDefinitionJsonMapper definitionJsonMapper,
+            DefinitionBudgetValidator budgetValidator,
             RuntimeRetirementClient runtimeRetirementClient,
             ObjectMapper objectMapper,
             Validator validator,
@@ -90,6 +93,7 @@ public class CustomAgentService {
         this.copyRepository = copyRepository;
         this.auditRepository = auditRepository;
         this.definitionJsonMapper = definitionJsonMapper;
+        this.budgetValidator = budgetValidator;
         this.runtimeRetirementClient = runtimeRetirementClient;
         this.objectMapper = objectMapper;
         this.validator = validator;
@@ -377,10 +381,12 @@ public class CustomAgentService {
         Map<String, CustomToolEntity> tools = toolRepository
                 .findByLicenseCodeAndStatusAndDeletedFalse(lineage.getLicenseCode(), ToolStatus.PUBLISHED)
                 .stream().collect(Collectors.toMap(CustomToolEntity::getName, tool -> tool));
+        List<JsonNode> resolved = new ArrayList<>();
         for (String name : definition.allowedTools()) {
             CustomToolEntity tool = tools.get(name);
             if (tool == null) throw new AgentDependencyException(
                     "Allowed tool is missing or not published: " + name);
+            resolved.add(readTree(tool.getDefinitionJson()));
             // Catch unexecutable types here rather than mid-run, after the model has spent turns.
             if (!ExecutableToolTypes.isExecutable(tool.getType())) {
                 throw new AgentDependencyException(
@@ -404,6 +410,9 @@ public class CustomAgentService {
                 }
             }
         }
+        // Every dependency exists and is executable; the last question is whether the assembled
+        // request still fits. Checked at publish, because that is when the tool set is fixed.
+        budgetValidator.checkAgent(definition, resolved);
     }
 
     private List<Map<String, String>> publishedDependents(String licenseCode, String agentId) {

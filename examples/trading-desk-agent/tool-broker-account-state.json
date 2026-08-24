@@ -1,0 +1,422 @@
+{
+  "name": "broker_get_account_state",
+  "description": "Retrieve the paper desk's account and risk state: mode, instrument, exchange, equity, buyingPower, openExposure and its percentage of equity, realisedPnlToday, dailyLossPercent, consecutiveLosses, cooldownSecondsRemaining, a circuitBreakers object (dailyLossTriggered, consecutiveLossTriggered, cooldownActive), open positions, working orders, the five most recent orders, the exchange's instrumentFilters (tickSize, lotStep, minQuantity, minNotional, trading status), a quote snapshot, and the full 'limits' block the broker enforces. Read this before planning a trade: a triggered circuit breaker or an existing position in the same instrument makes the answer NO_TRADE regardless of how good the setup looks.",
+  "type": "HTTP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Exchange symbol whose filters and quote should accompany the account state.",
+        "pattern": "^[A-Z0-9]{5,20}$"
+      }
+    },
+    "required": [
+      "symbol"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "account": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "PAPER",
+              "LIVE"
+            ]
+          },
+          "instrument": {
+            "type": "string"
+          },
+          "exchange": {
+            "type": "string"
+          },
+          "asOfMs": {
+            "type": "integer"
+          },
+          "asOf": {
+            "type": "string"
+          },
+          "equity": {
+            "type": "number"
+          },
+          "buyingPower": {
+            "type": "number"
+          },
+          "openExposure": {
+            "type": "number"
+          },
+          "openExposurePercentOfEquity": {
+            "type": "number"
+          },
+          "realisedPnlToday": {
+            "type": "number"
+          },
+          "dailyLossPercent": {
+            "type": "number"
+          },
+          "consecutiveLosses": {
+            "type": "integer"
+          },
+          "cooldownSecondsRemaining": {
+            "type": "integer"
+          },
+          "circuitBreakers": {
+            "type": "object",
+            "properties": {
+              "dailyLossTriggered": {
+                "type": "boolean"
+              },
+              "consecutiveLossTriggered": {
+                "type": "boolean"
+              },
+              "cooldownActive": {
+                "type": "boolean"
+              }
+            },
+            "description": "Any true means NO_TRADE, reason CIRCUIT_BREAKER."
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "symbol": {
+                  "type": "string"
+                },
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "LONG",
+                    "SHORT"
+                  ]
+                },
+                "quantity": {
+                  "type": "number"
+                },
+                "entryPrice": {
+                  "type": "number"
+                },
+                "stopPrice": {
+                  "type": "number"
+                },
+                "targetPrice": {
+                  "type": "number"
+                },
+                "openedAtMs": {
+                  "type": "integer"
+                },
+                "brokerOrderId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "openOrders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "brokerOrderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "idempotencyKey": {
+                  "type": "string"
+                },
+                "symbol": {
+                  "type": "string"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "BUY",
+                    "SELL"
+                  ]
+                },
+                "orderType": {
+                  "type": "string"
+                },
+                "timeInForce": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number"
+                },
+                "limitPrice": {
+                  "type": "number"
+                },
+                "strategy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "submittedAtMs": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "FILLED",
+                    "WORKING",
+                    "REJECTED"
+                  ]
+                },
+                "fillPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "filledQuantity": {
+                  "type": "number"
+                },
+                "protectiveStopOrderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "targetOrderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "stopPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "targetPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "failures": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Present only when status is REJECTED."
+                }
+              }
+            }
+          },
+          "recentOrders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "brokerOrderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "idempotencyKey": {
+                  "type": "string"
+                },
+                "symbol": {
+                  "type": "string"
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "BUY",
+                    "SELL"
+                  ]
+                },
+                "orderType": {
+                  "type": "string"
+                },
+                "timeInForce": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number"
+                },
+                "limitPrice": {
+                  "type": "number"
+                },
+                "strategy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "submittedAtMs": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "FILLED",
+                    "WORKING",
+                    "REJECTED"
+                  ]
+                },
+                "fillPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "filledQuantity": {
+                  "type": "number"
+                },
+                "protectiveStopOrderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "targetOrderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "stopPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "targetPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "failures": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Present only when status is REJECTED."
+                }
+              }
+            },
+            "description": "Look here for an idempotencyKey after an ambiguous submit."
+          },
+          "instrumentFilters": {
+            "type": "object",
+            "properties": {
+              "symbol": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "baseAsset": {
+                "type": "string"
+              },
+              "quoteAsset": {
+                "type": "string"
+              },
+              "tickSize": {
+                "type": "number"
+              },
+              "lotStep": {
+                "type": "number"
+              },
+              "minQuantity": {
+                "type": "number"
+              },
+              "minNotional": {
+                "type": "number"
+              }
+            }
+          },
+          "quote": {
+            "type": "object",
+            "properties": {
+              "bid": {
+                "type": "number"
+              },
+              "ask": {
+                "type": "number"
+              },
+              "bidQuantity": {
+                "type": "number"
+              },
+              "askQuantity": {
+                "type": "number"
+              },
+              "mid": {
+                "type": "number"
+              },
+              "spreadAbsolute": {
+                "type": "number"
+              },
+              "spreadPercent": {
+                "type": "number"
+              },
+              "lastPrice": {
+                "type": "number"
+              },
+              "quoteVolume24h": {
+                "type": "number"
+              },
+              "exchangeTimeMs": {
+                "type": "integer"
+              }
+            }
+          },
+          "limits": {
+            "type": "object",
+            "properties": {},
+            "description": "The authoritative risk limits. Overrides anything in static context."
+          }
+        },
+        "required": [
+          "mode",
+          "equity",
+          "circuitBreakers",
+          "positions",
+          "limits"
+        ]
+      }
+    },
+    "required": [
+      "ok",
+      "account"
+    ]
+  },
+  "configuration": {
+    "method": "GET",
+    "url": "http://host.docker.internal:8090/account?symbol={symbol}"
+  },
+  "executionPolicy": {
+    "operation": "READ",
+    "riskLevel": "LOW",
+    "approval": {
+      "required": false
+    }
+  }
+}

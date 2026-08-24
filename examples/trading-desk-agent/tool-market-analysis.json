@@ -1,0 +1,476 @@
+{
+  "name": "market_get_multi_timeframe_analysis",
+  "description": "Retrieve validated market structure and indicators for one instrument across all five playbook timeframes (1m, 5m, 15m, 1h, 1d) in a single call. Each timeframe is derived from exactly 200 fully closed candles; the forming candle is discarded before anything is computed. Only timeframes that passed every validation check appear in 'timeframes' — a missing timeframe is a data failure, not a neutral reading — and 'dataValidation.issues' explains each omission. Raw candles are deliberately not returned: every number a decision rests on is computed here, not by the model, so do not recompute or estimate any of them. See the response schema for the full field list.",
+  "type": "HTTP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Exchange symbol to analyse, for example BTCUSDT. Must be the instrument the desk is configured to trade; the broker rejects anything else.",
+        "pattern": "^[A-Z0-9]{5,20}$"
+      }
+    },
+    "required": [
+      "symbol"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean",
+        "description": "False means the request failed; read 'error'."
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "reason": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "DATA_INVALID when market data is unusable."
+      },
+      "symbol": {
+        "type": "string"
+      },
+      "asOfMs": {
+        "type": "integer"
+      },
+      "asOf": {
+        "type": "string",
+        "description": "UTC ISO-8601. Copy into the output timestamp."
+      },
+      "candlesPerTimeframe": {
+        "type": "integer"
+      },
+      "timeframeRoles": {
+        "type": "object",
+        "properties": {},
+        "description": "What each timeframe is used for."
+      },
+      "dataValidation": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "description": "False means NO_TRADE with reason DATA_INVALID."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "valid",
+          "issues"
+        ]
+      },
+      "quote": {
+        "type": "object",
+        "properties": {
+          "bid": {
+            "type": "number"
+          },
+          "ask": {
+            "type": "number"
+          },
+          "bidQuantity": {
+            "type": "number"
+          },
+          "askQuantity": {
+            "type": "number"
+          },
+          "mid": {
+            "type": "number"
+          },
+          "spreadAbsolute": {
+            "type": "number"
+          },
+          "spreadPercent": {
+            "type": "number"
+          },
+          "lastPrice": {
+            "type": "number"
+          },
+          "quoteVolume24h": {
+            "type": "number"
+          },
+          "exchangeTimeMs": {
+            "type": "integer"
+          }
+        }
+      },
+      "timeframes": {
+        "type": "object",
+        "properties": {
+          "1m": {
+            "$ref": "#/$defs/timeframe"
+          },
+          "5m": {
+            "$ref": "#/$defs/timeframe"
+          },
+          "15m": {
+            "$ref": "#/$defs/timeframe"
+          },
+          "1h": {
+            "$ref": "#/$defs/timeframe"
+          },
+          "1d": {
+            "$ref": "#/$defs/timeframe"
+          }
+        },
+        "description": "Only timeframes that passed validation are present. A missing timeframe is a data failure, not a neutral reading."
+      }
+    },
+    "required": [
+      "ok",
+      "symbol",
+      "asOf",
+      "dataValidation",
+      "timeframes"
+    ],
+    "$defs": {
+      "zone": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "number"
+          },
+          "touches": {
+            "type": "integer"
+          },
+          "low": {
+            "type": "number"
+          },
+          "high": {
+            "type": "number"
+          }
+        }
+      },
+      "timeframe": {
+        "type": "object",
+        "properties": {
+          "timeframe": {
+            "type": "string"
+          },
+          "candles": {
+            "type": "integer"
+          },
+          "lastClosedAtMs": {
+            "type": "integer"
+          },
+          "close": {
+            "type": "number"
+          },
+          "movingAverages": {
+            "type": "object",
+            "properties": {
+              "ema9": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ema20": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ema50": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ema200": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "sma20": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "sma50": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "distanceFromMasPercent": {
+            "type": "object",
+            "properties": {
+              "ema20": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ema50": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ema200": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "momentum": {
+            "type": "object",
+            "properties": {
+              "rsi14": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "rsi14FiveBarsAgo": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "macd": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "macdSignal": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "macdHistogram": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "macdHistogramThreeBarsAgo": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "volatility": {
+            "type": "object",
+            "properties": {
+              "atr14": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "atrPercentOfPrice": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "atr14TwentyBarsAgo": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "bollingerMiddle": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "bollingerUpper": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "bollingerLower": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "bollingerPercentB": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "bollingerBandwidth": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "bollingerBandwidthTwentyBarsAgo": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "trendStrength": {
+            "type": "object",
+            "properties": {
+              "adx14": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "plusDi": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "minusDi": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "structure": {
+            "type": "object",
+            "properties": {
+              "classification": {
+                "type": "string",
+                "enum": [
+                  "HIGHER_HIGHS_HIGHER_LOWS",
+                  "LOWER_HIGHS_LOWER_LOWS",
+                  "HIGHER_LOWS_LOWER_HIGHS_CONTRACTING",
+                  "LOWER_LOWS_HIGHER_HIGHS_EXPANDING",
+                  "INDETERMINATE"
+                ]
+              },
+              "lastSwingHighs": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "lastSwingLows": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "levels": {
+            "type": "object",
+            "properties": {
+              "support": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/zone"
+                },
+                "description": "Nearest first, below price."
+              },
+              "resistance": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/zone"
+                },
+                "description": "Nearest first, at or above price."
+              },
+              "twentyBarHigh": {
+                "type": "number"
+              },
+              "twentyBarLow": {
+                "type": "number"
+              }
+            }
+          },
+          "volume": {
+            "type": "object",
+            "properties": {
+              "last": {
+                "type": "number"
+              },
+              "average20": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ratioToAverage": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "trades": {
+                "type": "integer"
+              }
+            }
+          },
+          "conditions": {
+            "type": "object",
+            "properties": {
+              "closedAboveTwentyBarHigh": {
+                "type": "boolean"
+              },
+              "closedBelowTwentyBarLow": {
+                "type": "boolean"
+              },
+              "upperWickRejection": {
+                "type": "boolean"
+              },
+              "lowerWickRejection": {
+                "type": "boolean"
+              },
+              "insideBar": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "timeframe",
+          "candles",
+          "lastClosedAtMs",
+          "close"
+        ]
+      }
+    }
+  },
+  "configuration": {
+    "method": "GET",
+    "url": "http://host.docker.internal:8090/analysis?symbol={symbol}"
+  },
+  "executionPolicy": {
+    "operation": "READ",
+    "riskLevel": "LOW",
+    "approval": {
+      "required": false
+    }
+  }
+}

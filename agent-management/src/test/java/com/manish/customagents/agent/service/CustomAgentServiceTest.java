@@ -26,6 +26,7 @@ import com.manish.customagents.agent.repository.CustomAgentRepository;
 import com.manish.customagents.error.AgentNotFoundException;
 import com.manish.customagents.error.DuplicateAgentNameException;
 import com.manish.customagents.error.InvalidAgentStatusTransitionException;
+import com.manish.customagents.budget.DefinitionBudgetValidator;
 import com.manish.customagents.tool.repository.CustomToolRepository;
 
 import java.time.Clock;
@@ -78,6 +79,7 @@ class CustomAgentServiceTest {
                 copyRepository,
                 auditRepository,
                 new AgentDefinitionJsonMapper(objectMapper),
+                new DefinitionBudgetValidator(objectMapper),
                 runtimeRetirementClient,
                 objectMapper,
                 Validation.buildDefaultValidatorFactory().getValidator(),
