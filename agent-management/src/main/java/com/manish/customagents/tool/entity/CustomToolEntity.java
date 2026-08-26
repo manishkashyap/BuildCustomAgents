@@ -1,7 +1,7 @@
 package com.manish.customagents.tool.entity;
 
 import com.manish.customagents.tool.enums.ToolStatus;
-import com.manish.customagents.tool.enums.ToolType;
+import com.manish.customagents.contracts.ToolType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

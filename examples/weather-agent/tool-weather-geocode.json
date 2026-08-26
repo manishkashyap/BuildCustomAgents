@@ -1,0 +1,25 @@
+{
+  "name": "weather_geocode_place",
+  "description": "Resolve a place name to coordinates using the Open-Meteo geocoding API. Returns a 'results' array of candidate places, each with name, country, admin1 (state or region), latitude, longitude, timezone and population. IMPORTANT: when nothing matches, the response contains no 'results' key at all rather than an empty array. Call this before requesting a forecast, and pick the candidate whose country and region best match the user's intent.",
+  "type": "HTTP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "place": {
+        "type": "string",
+        "description": "City, town or region name to look up, for example 'Bengaluru' or 'New York'. Do not include the country."
+      }
+    },
+    "required": ["place"],
+    "additionalProperties": false
+  },
+  "configuration": {
+    "method": "GET",
+    "url": "https://geocoding-api.open-meteo.com/v1/search?name={place}&count=5&language=en&format=json"
+  },
+  "executionPolicy": {
+    "operation": "READ",
+    "riskLevel": "LOW",
+    "approval": { "required": false }
+  }
+}

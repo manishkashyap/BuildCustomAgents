@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
+import com.manish.customagents.contracts.ToolType;
 
 /** Executes published HTTP tool definitions without creating a Spring bean per tool. */
 @Component

@@ -29,15 +29,15 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import com.manish.customagents.contracts.AgentApiHeaders;
+import com.manish.customagents.contracts.LicenseCode;
 
 @Validated
 @RestController
 @RequestMapping(path = "/api/v1/agents", produces = MediaType.APPLICATION_JSON_VALUE)
 public class CustomAgentController {
-    public static final String LICENSE_CODE_HEADER = "X-Agent-License-Code";
-    public static final String USER_ID_HEADER = "X-Agent-User-Id";
-    public static final String ROLES_HEADER = "X-Agent-Roles";
-    public static final String CHANGE_REASON_HEADER = "X-Agent-Change-Reason";
+    public static final String ROLES_HEADER = AgentApiHeaders.ROLES;
+    public static final String CHANGE_REASON_HEADER = AgentApiHeaders.CHANGE_REASON;
 
     private final CustomAgentService service;
 
@@ -46,9 +46,8 @@ public class CustomAgentController {
     @Operation(summary = "Create a custom agent")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CustomAgentResponse> createAgent(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank
-            @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}") String licenseCode,
-            @RequestHeader(USER_ID_HEADER) @NotBlank @Size(max = 128) String userId,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @LicenseCode String licenseCode,
+            @RequestHeader(AgentApiHeaders.USER_ID) @NotBlank @Size(max = 128) String userId,
             @RequestHeader(ROLES_HEADER) @NotBlank String roles,
             @RequestHeader(name = CHANGE_REASON_HEADER, required = false) @Size(max = 1000) String reason,
             Authentication authentication,
@@ -65,9 +64,8 @@ public class CustomAgentController {
     @Operation(summary = "List custom agents")
     @GetMapping
     public ResponseEntity<List<CustomAgentResponse>> listAgents(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank
-            @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}") String licenseCode,
-            @RequestHeader(USER_ID_HEADER) @NotBlank @Size(max = 128) String userId,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @LicenseCode String licenseCode,
+            @RequestHeader(AgentApiHeaders.USER_ID) @NotBlank @Size(max = 128) String userId,
             @RequestHeader(ROLES_HEADER) @NotBlank String roles,
             Authentication authentication) {
         reader(authentication, userId, roles, licenseCode);
@@ -77,9 +75,8 @@ public class CustomAgentController {
     @Operation(summary = "Get a custom agent")
     @GetMapping("/{agentId}")
     public ResponseEntity<CustomAgentResponse> getAgent(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank
-            @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}") String licenseCode,
-            @RequestHeader(USER_ID_HEADER) @NotBlank @Size(max = 128) String userId,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @LicenseCode String licenseCode,
+            @RequestHeader(AgentApiHeaders.USER_ID) @NotBlank @Size(max = 128) String userId,
             @RequestHeader(ROLES_HEADER) @NotBlank String roles,
             Authentication authentication,
             @PathVariable @NotBlank @Size(max = 36) String agentId) {
@@ -92,9 +89,8 @@ public class CustomAgentController {
                     + " Published, retiring, and retired agents are immutable.")
     @PatchMapping(path = "/{agentId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CustomAgentResponse> updateAgent(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank
-            @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}") String licenseCode,
-            @RequestHeader(USER_ID_HEADER) @NotBlank @Size(max = 128) String userId,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @LicenseCode String licenseCode,
+            @RequestHeader(AgentApiHeaders.USER_ID) @NotBlank @Size(max = 128) String userId,
             @RequestHeader(ROLES_HEADER) @NotBlank String roles,
             @RequestHeader(name = CHANGE_REASON_HEADER, required = false) @Size(max = 1000) String reason,
             Authentication authentication,
@@ -108,11 +104,10 @@ public class CustomAgentController {
     @Operation(summary = "Copy a published or retired custom agent")
     @PostMapping(path = "/{agentId}/copies", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CustomAgentResponse> copyAgent(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank
-            @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}") String licenseCode,
-            @RequestHeader(USER_ID_HEADER) @NotBlank @Size(max = 128) String userId,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @LicenseCode String licenseCode,
+            @RequestHeader(AgentApiHeaders.USER_ID) @NotBlank @Size(max = 128) String userId,
             @RequestHeader(ROLES_HEADER) @NotBlank String roles,
-            @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 200) String idempotencyKey,
+            @RequestHeader(AgentApiHeaders.IDEMPOTENCY_KEY) @NotBlank @Size(max = 200) String idempotencyKey,
             @RequestHeader(name = CHANGE_REASON_HEADER, required = false) @Size(max = 1000) String reason,
             Authentication authentication,
             @PathVariable @NotBlank @Size(max = 36) String agentId,
@@ -129,9 +124,8 @@ public class CustomAgentController {
     @Operation(summary = "Publish or retire a custom agent")
     @PatchMapping(path = "/{agentId}/status", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AgentStatusResponse> updateStatus(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank
-            @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}") String licenseCode,
-            @RequestHeader(USER_ID_HEADER) @NotBlank @Size(max = 128) String userId,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @LicenseCode String licenseCode,
+            @RequestHeader(AgentApiHeaders.USER_ID) @NotBlank @Size(max = 128) String userId,
             @RequestHeader(ROLES_HEADER) @NotBlank String roles,
             @RequestHeader(name = CHANGE_REASON_HEADER, required = false) @Size(max = 1000) String reason,
             Authentication authentication,

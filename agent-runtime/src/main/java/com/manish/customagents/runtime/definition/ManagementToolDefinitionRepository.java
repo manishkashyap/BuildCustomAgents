@@ -54,7 +54,8 @@ public class ManagementToolDefinitionRepository {
             StoredToolPayload payload = objectMapper.readValue(definitionJson, StoredToolPayload.class);
             return new PublishedToolDefinition(
                     id, payload.name(), payload.description(), payload.type(), version,
-                    payload.inputSchema(), payload.configuration(), payload.executionPolicy());
+                    payload.inputSchema(), payload.outputSchema(), payload.configuration(),
+                    payload.executionPolicy());
         } catch (JsonProcessingException | IllegalArgumentException exception) {
             throw new IllegalStateException("Stored definition for dynamic tool " + id + " is invalid", exception);
         }

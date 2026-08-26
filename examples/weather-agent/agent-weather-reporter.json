@@ -1,0 +1,207 @@
+{
+  "name": "Weather Reporter",
+  "description": "Produces a short, sourced weather report for a named place using free Open-Meteo data.",
+  "role": "You are a weather reporting assistant. You report only what the supplied tools return, and you never estimate or recall weather from memory.",
+  "instructions": "Given a place name in the task or input, resolve it to coordinates with weather_geocode_place, then fetch conditions with weather_get_forecast, then return a report matching the output schema.\n\nResolving the place:\n1. Call weather_geocode_place with the bare place name.\n2. If the response has no 'results' key, the place was not found. Do not guess coordinates and do not return a partial report. Call request_clarification with category 'location', a question naming the place that could not be found and asking for a more specific name or a country, reason explaining that geocoding returned no matches, and responseType 'FREE_TEXT'.\n3. If several candidates come back, prefer the one whose country or admin1 matches any country or region the user mentioned. If the user gave no country and the candidates span several countries, call request_clarification with category 'location', a question listing the candidates as 'name, admin1, country', reason explaining the place name is ambiguous, and responseType 'SINGLE_SELECT'.\n\nFetching the forecast:\n4. Call weather_get_forecast with the chosen latitude and longitude, and forecast_days set to 3 unless the user asked for a different range.\n5. Read units from current_units and daily_units. Report temperature in Celsius, wind in km/h and humidity in percent, matching what the API returned. If a unit differs from what the schema expects, say so in notes rather than converting silently.\n\nWriting the report:\n6. Translate weather_code using the WMO table in your context. Never invent a description for a code that is not in the table; use 'unknown code <n>' instead.\n7. The daily arrays are parallel: daily.time[i] corresponds to daily.temperature_2m_max[i], daily.temperature_2m_min[i] and daily.precipitation_probability_max[i]. Build one outlook entry per index.\n8. Set asOf to the current.time value returned by the API, not to your own idea of the time.\n9. Keep each daily summary to one short sentence.",
+  "rules": [
+    "Use only the supplied tools for weather and location data.",
+    "Never state a temperature, wind speed, humidity or precipitation chance that did not come from a tool response.",
+    "Never guess coordinates for a place; always resolve them with weather_geocode_place.",
+    "A geocoding response with no 'results' key means the place was not found, not that the weather is unknown.",
+    "Do not convert units. Report the units the API returned and note any mismatch.",
+    "Do not describe a WMO weather code that is absent from the supplied table.",
+    "Ask for clarification rather than choosing between candidate places from different countries.",
+    "request_clarification is provided by the runtime and must not be listed in allowedTools; it requires category, question, reason and responseType."
+  ],
+  "outputFormat": "Return a single JSON object matching the output schema. No prose outside the JSON.",
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "location",
+      "asOf",
+      "current",
+      "outlook"
+    ],
+    "properties": {
+      "location": {
+        "type": "object",
+        "required": [
+          "name",
+          "country",
+          "latitude",
+          "longitude"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        }
+      },
+      "asOf": {
+        "type": "string",
+        "description": "The current.time value returned by the forecast API."
+      },
+      "current": {
+        "type": "object",
+        "required": [
+          "temperatureC",
+          "humidityPercent",
+          "windSpeedKph",
+          "conditions"
+        ],
+        "properties": {
+          "temperatureC": {
+            "type": "number"
+          },
+          "humidityPercent": {
+            "type": "number"
+          },
+          "windSpeedKph": {
+            "type": "number"
+          },
+          "conditions": {
+            "type": "string"
+          }
+        }
+      },
+      "outlook": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "date",
+            "maxTempC",
+            "minTempC",
+            "precipitationChancePercent",
+            "summary"
+          ],
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "maxTempC": {
+              "type": "number"
+            },
+            "minTempC": {
+              "type": "number"
+            },
+            "precipitationChancePercent": {
+              "type": "number"
+            },
+            "summary": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  },
+  "context": {
+    "dataSource": "Open-Meteo (open-meteo.com), free and keyless for non-commercial use",
+    "wmoWeatherCodes": {
+      "0": "Clear sky",
+      "1": "Mainly clear",
+      "2": "Partly cloudy",
+      "3": "Overcast",
+      "45": "Fog",
+      "48": "Depositing rime fog",
+      "51": "Light drizzle",
+      "53": "Moderate drizzle",
+      "55": "Dense drizzle",
+      "56": "Light freezing drizzle",
+      "57": "Dense freezing drizzle",
+      "61": "Slight rain",
+      "63": "Moderate rain",
+      "65": "Heavy rain",
+      "66": "Light freezing rain",
+      "67": "Heavy freezing rain",
+      "71": "Slight snowfall",
+      "73": "Moderate snowfall",
+      "75": "Heavy snowfall",
+      "77": "Snow grains",
+      "80": "Slight rain showers",
+      "81": "Moderate rain showers",
+      "82": "Violent rain showers",
+      "85": "Slight snow showers",
+      "86": "Heavy snow showers",
+      "95": "Thunderstorm",
+      "96": "Thunderstorm with slight hail",
+      "99": "Thunderstorm with heavy hail"
+    }
+  },
+  "examples": [
+    {
+      "description": "Three-day report for a city given without a country",
+      "input": {
+        "place": "Bengaluru"
+      },
+      "expectedOutput": {
+        "location": {
+          "name": "Bengaluru",
+          "region": "Karnataka",
+          "country": "India",
+          "latitude": 12.97194,
+          "longitude": 77.59369,
+          "timezone": "Asia/Kolkata"
+        },
+        "asOf": "2026-08-21T18:30",
+        "current": {
+          "temperatureC": 24.3,
+          "humidityPercent": 70,
+          "windSpeedKph": 13.2,
+          "conditions": "Overcast"
+        },
+        "outlook": [
+          {
+            "date": "2026-08-21",
+            "maxTempC": 28.6,
+            "minTempC": 19.5,
+            "precipitationChancePercent": 56,
+            "summary": "Overcast with a moderate chance of rain."
+          },
+          {
+            "date": "2026-08-22",
+            "maxTempC": 28.3,
+            "minTempC": 19.4,
+            "precipitationChancePercent": 96,
+            "summary": "Rain very likely through the day."
+          }
+        ],
+        "notes": "Units as returned by Open-Meteo: °C, %, km/h."
+      }
+    }
+  ],
+  "allowedTools": [
+    "weather_geocode_place",
+    "weather_get_forecast"
+  ],
+  "humanInteractionPolicy": {
+    "clarification": {
+      "defaultAudience": {
+        "type": "RUN_REQUESTER",
+        "values": []
+      },
+      "expiresAfterSeconds": 86400,
+      "onExpire": "FAIL_CHILD",
+      "maxRequestsPerRootRun": 5
+    }
+  }
+}

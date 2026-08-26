@@ -43,15 +43,11 @@ import com.manish.customagents.runtime.tool.ToolExecutionContext;
 import com.manish.customagents.runtime.tool.ToolExecutionRequest;
 import com.manish.customagents.runtime.tool.ToolExecutionResult;
 import com.manish.customagents.runtime.tool.ToolExecutorRegistry;
-import com.manish.customagents.runtime.tool.ToolType;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import com.manish.customagents.contracts.ToolType;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,9 +57,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.manish.customagents.contracts.JsonDigest;
 
 @Service
 public class AgentExecutionService {
+    private static final Logger LOG = LoggerFactory.getLogger(AgentExecutionService.class);
     private static final TypeReference<List<AgentMessage>> MESSAGE_LIST = new TypeReference<>() {};
 
     private final ManagementAgentDefinitionRepository agentRepository;
@@ -587,14 +587,16 @@ public class AgentExecutionService {
         }
     }
 
+    /**
+     * Binds an approval to the exact call it was granted for.
+     *
+     * <p>Note: DraftAgentTestService.binding canonicalises the arguments before hashing and this
+     * one does not, so the two loops derive different bindings for the same call. Changing it
+     * here would invalidate bindings already persisted against in-flight approvals, so the
+     * divergence is left in place and belongs to the shared-loop extraction.
+     */
     private String binding(PublishedToolDefinition tool, JsonNode arguments) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            String subject = tool.id() + ":" + tool.version() + ":" + writeJson(arguments);
-            return HexFormat.of().formatHex(digest.digest(subject.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(exception);
-        }
+        return JsonDigest.sha256(tool.id() + ":" + tool.version() + ":" + writeJson(arguments));
     }
 
     private Map<String, PublishedToolDefinition> index(List<PublishedToolDefinition> tools) {
@@ -706,6 +708,20 @@ public class AgentExecutionService {
         private void add(TokenUsage usage) {
             input += usage.inputTokens(); output += usage.outputTokens(); total += usage.totalTokens();
         }
-        private TokenUsage value() { return new TokenUsage(input, output, Math.max(total, input + output)); }
+        /**
+         * Providers occasionally report a total below their own input plus output. TokenUsage
+         * forbids that, so the total is raised to the parts — but the substitution is logged,
+         * because cost reporting is derived from these numbers and a silent correction is
+         * indistinguishable from an accurate figure.
+         */
+        private TokenUsage value() {
+            int parts = input + output;
+            if (total < parts) {
+                LOG.warn("Provider reported total {} below input+output {}; using {} instead",
+                        total, parts, parts);
+                return new TokenUsage(input, output, parts);
+            }
+            return new TokenUsage(input, output, total);
+        }
     }
 }

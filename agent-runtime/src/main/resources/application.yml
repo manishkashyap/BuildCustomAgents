@@ -54,7 +54,7 @@ agents:
     interaction-token-ttl: ${AGENT_TEST_INTERACTION_TOKEN_TTL:30m}
   tools:
     http:
-      allowed-hosts: ${AGENT_HTTP_TOOL_ALLOWED_HOSTS:}
+      allowed-hosts: ${AGENT_HTTP_TOOL_ALLOWED_HOSTS:host.docker.internal,api.open-meteo.com,geocoding-api.open-meteo.com}
   llm:
     openai:
       enabled: ${OPENAI_ENABLED:false}

@@ -1,6 +1,6 @@
 package com.manish.customagents.runtime.api;
 
-import com.manish.customagents.runtime.model.RetirementEligibilityResponse;
+import com.manish.customagents.contracts.RetirementEligibilityResponse;
 import com.manish.customagents.runtime.service.AgentRetirementEligibilityService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.manish.customagents.contracts.AgentApiHeaders;
 
 @Validated
 @RestController
@@ -32,8 +33,8 @@ public class InternalAgentLifecycleController {
 
     @GetMapping("/{agentId}/retirement-eligibility")
     public ResponseEntity<RetirementEligibilityResponse> retirementEligibility(
-            @RequestHeader("X-Agent-License-Code") @NotBlank String licenseCode,
-            @RequestHeader("X-Agent-Internal-Token") @NotBlank String internalToken,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @NotBlank String licenseCode,
+            @RequestHeader(AgentApiHeaders.INTERNAL_TOKEN) @NotBlank String internalToken,
             @PathVariable @NotBlank @Size(max = 36) String agentId) {
         if (!MessageDigest.isEqual(expectedToken, internalToken.getBytes(StandardCharsets.UTF_8))) {
             throw new AccessDeniedException("Invalid service authentication token");

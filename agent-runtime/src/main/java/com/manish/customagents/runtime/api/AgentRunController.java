@@ -28,14 +28,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.Authentication;
 import java.util.Set;
+import com.manish.customagents.contracts.AgentApiHeaders;
+import com.manish.customagents.contracts.LicenseCode;
 
 @Validated
 @RestController
 @RequestMapping(path = "/api/v1/agent-runs", produces = MediaType.APPLICATION_JSON_VALUE)
 public class AgentRunController {
 
-    public static final String LICENSE_CODE_HEADER = "X-Agent-License-Code";
-    public static final String USER_ID_HEADER = "X-Agent-User-Id";
 
     private final AgentExecutionService executionService;
     private final AgentRunControlService controlService;
@@ -59,13 +59,10 @@ public class AgentRunController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AgentRunResponse> run(
             @Parameter(description = "platform license code establishing the tenant boundary", required = true)
-            @RequestHeader(LICENSE_CODE_HEADER)
-            @NotBlank
-            @Pattern(
-                    regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,127}",
-                    message = "must contain only letters, numbers, dots, underscores, or hyphens")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE)
+            @LicenseCode
             String licenseCode,
-            @RequestHeader(name = USER_ID_HEADER, defaultValue = "local-requester")
+            @RequestHeader(name = AgentApiHeaders.USER_ID, defaultValue = "local-requester")
             @NotBlank @jakarta.validation.constraints.Size(max = 128) String requestedBy,
             Authentication authentication,
             @Valid @RequestBody RunAgentRequest request) {
@@ -76,7 +73,7 @@ public class AgentRunController {
 
     @GetMapping("/{runId}")
     public ResponseEntity<AgentRunResponse> get(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank String licenseCode,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @NotBlank String licenseCode,
             Authentication authentication,
             @PathVariable @NotBlank @jakarta.validation.constraints.Size(max = 36) String runId) {
         RuntimeActorContext.resolve(authentication, "local-requester", Set.of("RUN_REQUESTER"), licenseCode);
@@ -85,7 +82,7 @@ public class AgentRunController {
 
     @PostMapping(path = "/{runId}/instructions", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<HumanInstructionResponse> addInstruction(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank String licenseCode,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @NotBlank String licenseCode,
             @PathVariable @NotBlank @jakarta.validation.constraints.Size(max = 36) String runId,
             Authentication authentication,
             @Valid @RequestBody AddHumanInstructionRequest request) {
@@ -96,7 +93,7 @@ public class AgentRunController {
 
     @PostMapping(path = "/{runId}/cancel", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AgentRunResponse> cancel(
-            @RequestHeader(LICENSE_CODE_HEADER) @NotBlank String licenseCode,
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @NotBlank String licenseCode,
             @PathVariable @NotBlank @jakarta.validation.constraints.Size(max = 36) String runId,
             Authentication authentication,
             @Valid @RequestBody CancelAgentRunRequest request) {

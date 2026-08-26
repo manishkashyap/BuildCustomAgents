@@ -34,7 +34,7 @@ import com.manish.customagents.runtime.tool.CustomAgentToolExecutor;
 import com.manish.customagents.runtime.tool.PublishedToolDefinition;
 import com.manish.customagents.runtime.tool.ToolExecutor;
 import com.manish.customagents.runtime.tool.ToolExecutorRegistry;
-import com.manish.customagents.runtime.tool.ToolType;
+import com.manish.customagents.contracts.ToolType;
 import com.manish.customagents.runtime.entity.AgentRunEntity;
 import com.manish.customagents.runtime.entity.AgentToolInvocationEntity;
 import com.manish.customagents.runtime.entity.HumanInteractionRequestEntity;
@@ -366,7 +366,8 @@ class AgentExecutionServiceTest {
                 List.of(),
                 tools,
                 null);
-        return new StoredAgentDefinition(id, LICENSE_CODE, "PUBLISHED", version, definition);
+        return new StoredAgentDefinition(
+                id, LICENSE_CODE, "PUBLISHED", "ACTIVE", version, definition);
     }
 
     private ToolExecutor campaignExecutor() {

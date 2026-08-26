@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.manish.customagents.contracts.AgentApiHeaders;
 
 @WebMvcTest(CustomAgentController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -76,8 +77,8 @@ class CustomAgentControllerTest {
                         timestamp));
 
         mockMvc.perform(post("/api/v1/agents")
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_EDITOR")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_REQUEST))
@@ -106,8 +107,8 @@ class CustomAgentControllerTest {
                 """;
 
         mockMvc.perform(post("/api/v1/agents")
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_EDITOR")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidRequest))
@@ -132,8 +133,8 @@ class CustomAgentControllerTest {
                         updatedAt));
 
         mockMvc.perform(patch("/api/v1/agents/{agentId}/status", agentId)
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_PUBLISHER")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PUBLISHED\"}"))
@@ -154,8 +155,8 @@ class CustomAgentControllerTest {
                         AgentStatus.RETIRED, AgentStatus.PUBLISHED));
 
         mockMvc.perform(patch("/api/v1/agents/{agentId}/status", agentId)
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_PUBLISHER")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PUBLISHED\"}"))
@@ -170,8 +171,8 @@ class CustomAgentControllerTest {
         mockMvc.perform(patch(
                         "/api/v1/agents/{agentId}/status",
                         "d272ef82-c734-4873-9346-b4d250f8bf43")
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_PUBLISHER")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -190,8 +191,8 @@ class CustomAgentControllerTest {
                 agentId, "account-123", AgentStatus.DRAFT, 1, request, now, now));
 
         mockMvc.perform(get("/api/v1/agents/{agentId}", agentId)
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_EDITOR"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.definition.role").value("platform campaign quality analyst"));
@@ -205,8 +206,8 @@ class CustomAgentControllerTest {
                 "agent-1", "account-123", AgentStatus.DRAFT, 1, request, now, now)));
 
         mockMvc.perform(get("/api/v1/agents")
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_EDITOR"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value("agent-1"))
@@ -223,8 +224,8 @@ class CustomAgentControllerTest {
                 agentId, "account-123", AgentStatus.DRAFT, 1, request, now, now));
 
         mockMvc.perform(patch("/api/v1/agents/{agentId}", agentId)
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "AGENT_EDITOR")
                         .header(CustomAgentController.CHANGE_REASON_HEADER, "Tune prompt")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -237,8 +238,8 @@ class CustomAgentControllerTest {
     void requiresEditorRoleForDraftUpdates() throws Exception {
         mockMvc.perform(patch("/api/v1/agents/{agentId}",
                         "d272ef82-c734-4873-9346-b4d250f8bf43")
-                        .header(CustomAgentController.LICENSE_CODE_HEADER, "account-123")
-                        .header(CustomAgentController.USER_ID_HEADER, "user-1")
+                        .header(AgentApiHeaders.LICENSE_CODE, "account-123")
+                        .header(AgentApiHeaders.USER_ID, "user-1")
                         .header(CustomAgentController.ROLES_HEADER, "RUN_REQUESTER")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"Analyst\"}"))

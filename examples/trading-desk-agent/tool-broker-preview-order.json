@@ -1,0 +1,200 @@
+{
+  "name": "broker_preview_order",
+  "description": "Size a candidate trade and run every pre-trade risk check without submitting anything. The desk computes quantity from risk_amount = equity x riskPerTradePercent divided by the stop distance, then reduces it for position exposure, portfolio exposure, buying power, leverage, a maximum share of top-of-book liquidity, and the exchange lot step, rounding down only. Returns quantity, notional, riskAmount, riskPercentOfEquity, bindingConstraint (which cap decided the size), estimatedFees, estimatedSlippageCost, estimatedSlippagePercent, rewardToRiskAfterCosts, referencePrice, a 'checks' array of every named check with passed and detail, 'passed', and 'failures'. A quantity of zero or a non-empty 'failures' means the trade cannot be taken. Never estimate these numbers yourself and never submit an order whose preview did not pass.",
+  "type": "HTTP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Exchange symbol, for example BTCUSDT.",
+        "pattern": "^[A-Z0-9]{5,20}$"
+      },
+      "direction": {
+        "type": "string",
+        "description": "BUY to open long, SELL to open short. The desk rejects a direction its configuration disallows.",
+        "enum": [
+          "BUY",
+          "SELL"
+        ]
+      },
+      "entryPrice": {
+        "type": "number",
+        "description": "Intended limit entry, aligned to the instrument tick size and close to the current ask (BUY) or bid (SELL). The desk rejects an entry that has drifted too far from the market.",
+        "exclusiveMinimum": 0
+      },
+      "stopPrice": {
+        "type": "number",
+        "description": "Protective stop, below entry for BUY and above entry for SELL, placed at the level that invalidates the setup.",
+        "exclusiveMinimum": 0
+      },
+      "targetPrice": {
+        "type": "number",
+        "description": "Profit target, above entry for BUY and below entry for SELL, placed short of the nearest opposing support or resistance zone.",
+        "exclusiveMinimum": 0
+      },
+      "atr14": {
+        "type": "number",
+        "description": "The atr14 value from the 15m timeframe of the analysis response. Used to check the stop is not an unreasonable multiple of current volatility. Required: the desk will not size a trade whose stop it cannot bound.",
+        "exclusiveMinimum": 0
+      },
+      "strategy": {
+        "type": "string",
+        "description": "The catalogue name of the strategy being traded. Must be one of the nine names in the agent's strategyCatalogue; the desk records it on the order.",
+        "pattern": "^[a-z_]{4,40}$"
+      },
+      "strategyScore": {
+        "type": "number",
+        "description": "Score of the selected strategy, 0 to 100. Checked against the desk's minStrategyScore.",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "runnerUpScore": {
+        "type": "number",
+        "description": "Score of the second best applicable strategy, or 0 when there is no second candidate. Checked against the desk's minScoreMarginOverRunnerUp.",
+        "minimum": 0,
+        "maximum": 100
+      }
+    },
+    "required": [
+      "symbol",
+      "direction",
+      "entryPrice",
+      "stopPrice",
+      "targetPrice",
+      "atr14",
+      "strategy",
+      "strategyScore",
+      "runnerUpScore"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "preview": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "orderType": {
+            "type": "string"
+          },
+          "entryPrice": {
+            "type": "number"
+          },
+          "stopPrice": {
+            "type": "number"
+          },
+          "targetPrice": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Zero means the trade cannot be taken."
+          },
+          "notional": {
+            "type": "number"
+          },
+          "riskAmount": {
+            "type": "number"
+          },
+          "riskPercentOfEquity": {
+            "type": "number"
+          },
+          "bindingConstraint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "risk",
+              "positionExposure",
+              "portfolioExposure",
+              "buyingPower",
+              "bookLiquidity",
+              null
+            ],
+            "description": "Which cap decided the size."
+          },
+          "estimatedFees": {
+            "type": "number"
+          },
+          "estimatedSlippageCost": {
+            "type": "number"
+          },
+          "estimatedSlippagePercent": {
+            "type": "number"
+          },
+          "rewardToRiskAfterCosts": {
+            "type": "number"
+          },
+          "referencePrice": {
+            "type": "number"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "passed": {
+                  "type": "boolean"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "passed": {
+            "type": "boolean",
+            "description": "False means do not submit."
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Check names. Copy verbatim into risk_checks.failures."
+          }
+        },
+        "required": [
+          "quantity",
+          "passed",
+          "failures"
+        ]
+      }
+    },
+    "required": [
+      "ok",
+      "preview"
+    ]
+  },
+  "configuration": {
+    "method": "GET",
+    "url": "http://host.docker.internal:8090/order-preview?symbol={symbol}&direction={direction}&entryPrice={entryPrice}&stopPrice={stopPrice}&targetPrice={targetPrice}&atr14={atr14}&strategy={strategy}&strategyScore={strategyScore}&runnerUpScore={runnerUpScore}"
+  },
+  "executionPolicy": {
+    "operation": "READ",
+    "riskLevel": "LOW",
+    "approval": {
+      "required": false
+    }
+  }
+}

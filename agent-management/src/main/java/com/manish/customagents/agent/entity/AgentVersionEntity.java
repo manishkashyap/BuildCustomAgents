@@ -138,9 +138,21 @@ public class AgentVersionEntity {
         touch(actorId, changeReason, at);
     }
 
+    /**
+     * Retires a version that has served traffic. Drafts are not retirable: a retired identity
+     * already blocks publishing, so a draft is left intact rather than silently destroyed.
+     */
     public void retire(String actorId, String changeReason, Instant at) {
+        if (status != AgentVersionStatus.PUBLISHED && status != AgentVersionStatus.SUPERSEDED) {
+            throw new IllegalStateException(
+                    "Only published or superseded versions can be retired; current status is " + status);
+        }
         status = AgentVersionStatus.RETIRED;
         touch(actorId, changeReason, at);
+    }
+
+    public boolean isRetirable() {
+        return status == AgentVersionStatus.PUBLISHED || status == AgentVersionStatus.SUPERSEDED;
     }
 
     private void touch(String actorId, String changeReason, Instant at) {

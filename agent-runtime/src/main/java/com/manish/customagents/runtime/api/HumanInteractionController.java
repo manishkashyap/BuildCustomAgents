@@ -23,14 +23,14 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.Authentication;
+import com.manish.customagents.contracts.AgentApiHeaders;
 
 @Validated
 @RestController
 @RequestMapping(path = "/api/v1/human-interactions", produces = MediaType.APPLICATION_JSON_VALUE)
 public class HumanInteractionController {
-    private static final String LICENSE = AgentRunController.LICENSE_CODE_HEADER;
-    private static final String USER = AgentRunController.USER_ID_HEADER;
-    private static final String ROLES = "X-Agent-Roles";
+    private static final String LICENSE = AgentApiHeaders.LICENSE_CODE;
+    private static final String USER = AgentApiHeaders.USER_ID;
     private final HumanInteractionService service;
     private final RootHumanResponseService rootResponses;
 
@@ -44,7 +44,7 @@ public class HumanInteractionController {
     public ResponseEntity<List<HumanInteractionView>> inbox(
             @RequestHeader(LICENSE) @NotBlank String licenseCode,
             @RequestHeader(name = USER, defaultValue = "local-requester") @NotBlank String actorId,
-            @RequestHeader(name = ROLES, defaultValue = "RUN_REQUESTER") String roles,
+            @RequestHeader(name = AgentApiHeaders.ROLES, defaultValue = "RUN_REQUESTER") String roles,
             Authentication authentication) {
         RuntimeActorContext actor = RuntimeActorContext.resolve(
                 authentication, actorId, roles(roles), licenseCode);
@@ -55,7 +55,7 @@ public class HumanInteractionController {
     public ResponseEntity<HumanInteractionView> get(
             @RequestHeader(LICENSE) @NotBlank String licenseCode,
             @RequestHeader(name = USER, defaultValue = "local-requester") @NotBlank String actorId,
-            @RequestHeader(name = ROLES, defaultValue = "RUN_REQUESTER") String roles,
+            @RequestHeader(name = AgentApiHeaders.ROLES, defaultValue = "RUN_REQUESTER") String roles,
             Authentication authentication,
             @PathVariable @NotBlank @Size(max = 36) String interactionId) {
         RuntimeActorContext actor = RuntimeActorContext.resolve(
@@ -68,9 +68,9 @@ public class HumanInteractionController {
     public ResponseEntity<HumanInteractionResolutionResponse> respond(
             @RequestHeader(LICENSE) @NotBlank String licenseCode,
             @RequestHeader(name = USER, defaultValue = "local-requester") @NotBlank String actorId,
-            @RequestHeader(name = ROLES, defaultValue = "RUN_REQUESTER") String roles,
+            @RequestHeader(name = AgentApiHeaders.ROLES, defaultValue = "RUN_REQUESTER") String roles,
             Authentication authentication,
-            @RequestHeader(name = "Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader(name = AgentApiHeaders.IDEMPOTENCY_KEY) @NotBlank @Size(max = 128) String idempotencyKey,
             @PathVariable @NotBlank @Size(max = 36) String interactionId,
             @Valid @RequestBody SubmitHumanInteractionResponse command) {
         RuntimeActorContext actor = RuntimeActorContext.resolve(

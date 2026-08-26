@@ -2,6 +2,7 @@ package com.manish.customagents.tool.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.manish.customagents.budget.DefinitionBudgetValidator;
 import com.manish.customagents.error.DuplicateToolNameException;
 import com.manish.customagents.error.InvalidToolStatusTransitionException;
 import com.manish.customagents.error.ToolNotFoundException;
@@ -25,14 +26,17 @@ public class CustomToolService {
 
     private final CustomToolRepository repository;
     private final ToolDefinitionJsonMapper definitionJsonMapper;
+    private final DefinitionBudgetValidator budgetValidator;
     private final Clock clock;
 
     public CustomToolService(
             CustomToolRepository repository,
             ToolDefinitionJsonMapper definitionJsonMapper,
+            DefinitionBudgetValidator budgetValidator,
             Clock clock) {
         this.repository = repository;
         this.definitionJsonMapper = definitionJsonMapper;
+        this.budgetValidator = budgetValidator;
         this.clock = clock;
     }
 
@@ -114,6 +118,9 @@ public class CustomToolService {
         if (entity.getStatus() != ToolStatus.DRAFT) {
             throw new InvalidToolStatusTransitionException(entity.getStatus(), requestedStatus);
         }
+        // Checked here rather than on create so a draft can be saved while it is still being
+        // written, and so a budget change never strands an already-published tool.
+        budgetValidator.checkTool(definitionJsonMapper.read(entity.getDefinitionJson()));
         entity.publish(clock.instant());
         repository.saveAndFlush(entity);
         return statusResponse(entity);
@@ -140,7 +147,7 @@ public class CustomToolService {
     private CreateToolRequest normalize(CreateToolRequest request) {
         return new CreateToolRequest(
                 request.name().strip(), request.description().strip(), request.type(),
-                request.inputSchema(), request.configuration(),
+                request.inputSchema(), request.outputSchema(), request.configuration(),
                 objectOrEmpty(request.executionPolicy()));
     }
 

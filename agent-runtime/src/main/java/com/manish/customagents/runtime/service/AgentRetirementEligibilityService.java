@@ -1,7 +1,7 @@
 package com.manish.customagents.runtime.service;
 
 import com.manish.customagents.runtime.enums.AgentRunStatus;
-import com.manish.customagents.runtime.model.RetirementEligibilityResponse;
+import com.manish.customagents.contracts.RetirementEligibilityResponse;
 import com.manish.customagents.runtime.repository.AgentRunRepository;
 import java.util.LinkedHashMap;
 import java.util.Map;

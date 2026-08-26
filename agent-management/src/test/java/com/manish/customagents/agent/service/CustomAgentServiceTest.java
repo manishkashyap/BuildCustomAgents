@@ -3,6 +3,7 @@ package com.manish.customagents.agent.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,7 +18,7 @@ import com.manish.customagents.agent.enums.AgentStatus;
 import com.manish.customagents.agent.enums.AgentVersionStatus;
 import com.manish.customagents.agent.model.CopyCustomAgentRequest;
 import com.manish.customagents.agent.model.CreateCustomAgentRequest;
-import com.manish.customagents.agent.model.RetirementEligibilityResponse;
+import com.manish.customagents.contracts.RetirementEligibilityResponse;
 import com.manish.customagents.agent.repository.AgentAuditEventRepository;
 import com.manish.customagents.agent.repository.AgentCopyRequestRepository;
 import com.manish.customagents.agent.repository.AgentVersionRepository;
@@ -25,6 +26,7 @@ import com.manish.customagents.agent.repository.CustomAgentRepository;
 import com.manish.customagents.error.AgentNotFoundException;
 import com.manish.customagents.error.DuplicateAgentNameException;
 import com.manish.customagents.error.InvalidAgentStatusTransitionException;
+import com.manish.customagents.budget.DefinitionBudgetValidator;
 import com.manish.customagents.tool.repository.CustomToolRepository;
 
 import java.time.Clock;
@@ -40,6 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -76,6 +79,7 @@ class CustomAgentServiceTest {
                 copyRepository,
                 auditRepository,
                 new AgentDefinitionJsonMapper(objectMapper),
+                new DefinitionBudgetValidator(objectMapper),
                 runtimeRetirementClient,
                 objectMapper,
                 Validation.buildDefaultValidatorFactory().getValidator(),
@@ -259,6 +263,25 @@ class CustomAgentServiceTest {
                 "account-123", "agent-123", AgentStatus.PUBLISHED, "user-1", null))
                 .isInstanceOf(AgentNotFoundException.class)
                 .hasMessageContaining("agent-123");
+    }
+
+    @Test
+    void retiresOnlyAfterRetiringStateIsCommitted() {
+        // The runtime reads RETIRING from the management database over HTTP, so the state has to
+        // be persisted before the eligibility call. Merging the transaction boundaries would make
+        // that query run against uncommitted state and silently stop excluding concurrent runs.
+        Fixture fixture = agent(AgentStatus.PUBLISHED);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse(AGENT_ID, "account-123"))
+                .thenReturn(Optional.of(fixture.lineage()));
+        when(repository.saveAndFlush(fixture.lineage())).thenReturn(fixture.lineage());
+        when(runtimeRetirementClient.check("account-123", AGENT_ID))
+                .thenReturn(new RetirementEligibilityResponse(true, 0, java.util.Map.of()));
+
+        service.updateStatus("account-123", AGENT_ID, AgentStatus.RETIRED, "user-1", null);
+
+        InOrder order = inOrder(repository, runtimeRetirementClient);
+        order.verify(repository).saveAndFlush(fixture.lineage());
+        order.verify(runtimeRetirementClient).check("account-123", AGENT_ID);
     }
 
     private record Fixture(CustomAgentEntity lineage, AgentVersionEntity version) {

@@ -13,10 +13,4 @@ public record StoredAgentDefinition(
         String lineageStatus,
         int version,
         PublishedAgentDefinition definition) {
-
-    /** Assumes an active identity; convenient where lineage state is not under test. */
-    public StoredAgentDefinition(String id, String licenseCode, String status, int version,
-            PublishedAgentDefinition definition) {
-        this(id, licenseCode, status, "ACTIVE", version, definition);
-    }
 }

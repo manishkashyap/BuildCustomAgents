@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.manish.customagents.runtime.enums.HumanInteractionType;
 import com.manish.customagents.runtime.enums.HumanResponseType;
 import org.junit.jupiter.api.Test;
+import com.manish.customagents.contracts.ToolType;
 
 class BuiltInToolExecutorTest {
     private final ObjectMapper objectMapper = new ObjectMapper();

@@ -47,6 +47,17 @@ public class ApiExceptionHandler {
                 "agent-dependency-unavailable"));
     }
 
+    @ExceptionHandler(DefinitionBudgetExceededException.class)
+    ResponseEntity<ProblemDetail> handleDefinitionBudget(DefinitionBudgetExceededException exception) {
+        ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Definition is too large",
+                exception.getMessage(), "definition-budget-exceeded");
+        problem.setProperty("characters", exception.characters());
+        problem.setProperty("characterLimit", exception.limit());
+        problem.setProperty("estimatedTokens", exception.estimatedTokens());
+        problem.setProperty("estimatedTokenLimit", exception.limitTokens());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(problem);
+    }
+
     @ExceptionHandler(AgentRetirementBlockedException.class)
     ResponseEntity<ProblemDetail> handleRetirementBlocked(AgentRetirementBlockedException exception) {
         ProblemDetail problem = problem(HttpStatus.CONFLICT, "Agent retirement blocked",

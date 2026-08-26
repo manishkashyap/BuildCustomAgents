@@ -12,10 +12,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import com.manish.customagents.contracts.AgentApiHeaders;
 
 @Component
 public class ManagementTenantAuthorization implements HandlerInterceptor, WebMvcConfigurer {
-    private static final String LICENSE_HEADER = "X-Agent-License-Code";
     private final boolean enabled;
 
     public ManagementTenantAuthorization(
@@ -36,7 +36,7 @@ public class ManagementTenantAuthorization implements HandlerInterceptor, WebMvc
         if (!(authentication instanceof JwtAuthenticationToken jwt)) {
             throw new AccessDeniedException("JWT authentication is required");
         }
-        String licenseCode = request.getHeader(LICENSE_HEADER);
+        String licenseCode = request.getHeader(AgentApiHeaders.LICENSE_CODE);
         Object licenses = jwt.getToken().getClaims().get("license_codes");
         if (licenseCode == null || !(licenses instanceof Collection<?> allowed)
                 || allowed.stream().map(Object::toString).noneMatch(licenseCode::equals)) {

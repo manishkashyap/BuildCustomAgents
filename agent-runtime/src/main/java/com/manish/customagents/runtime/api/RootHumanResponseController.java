@@ -20,12 +20,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.manish.customagents.contracts.AgentApiHeaders;
 
 @Validated
 @RestController
 @RequestMapping(path = "/api/v1/agent-runs", produces = MediaType.APPLICATION_JSON_VALUE)
 public class RootHumanResponseController {
-    private static final String ROLES = "X-Agent-Roles";
     private final RootHumanResponseService service;
 
     public RootHumanResponseController(RootHumanResponseService service) {
@@ -38,12 +38,12 @@ public class RootHumanResponseController {
                     + "deepest-first, and returns when the root reaches its next stable state.")
     @PostMapping(path = "/{rootRunId}/human-responses", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RootHumanResponsesResponse> respond(
-            @RequestHeader(AgentRunController.LICENSE_CODE_HEADER) @NotBlank String licenseCode,
-            @RequestHeader(name = AgentRunController.USER_ID_HEADER, defaultValue = "local-requester")
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @NotBlank String licenseCode,
+            @RequestHeader(name = AgentApiHeaders.USER_ID, defaultValue = "local-requester")
             @NotBlank @Size(max = 128) String actorId,
-            @RequestHeader(name = ROLES, defaultValue = "RUN_REQUESTER") String roles,
+            @RequestHeader(name = AgentApiHeaders.ROLES, defaultValue = "RUN_REQUESTER") String roles,
             Authentication authentication,
-            @RequestHeader(name = "Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
+            @RequestHeader(name = AgentApiHeaders.IDEMPOTENCY_KEY) @NotBlank @Size(max = 128) String idempotencyKey,
             @PathVariable @NotBlank @Size(max = 36) String rootRunId,
             @Valid @RequestBody SubmitRootHumanResponsesRequest command) {
         RuntimeActorContext actor = RuntimeActorContext.resolve(

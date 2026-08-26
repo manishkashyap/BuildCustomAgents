@@ -1,0 +1,323 @@
+{
+  "name": "broker_submit_bracket_order",
+  "description": "Submit one bracket order to the paper desk: entry, protective stop and profit target in a single call, so a filled position can never exist without protection. Requires human approval before it executes. The desk re-fetches the live quote and re-runs every pre-trade check before accepting, so an order approved after a delay is re-validated against the market as it is at that moment, not as it was when the plan was made. Idempotent on idempotencyKey: replaying the same key returns the original order with duplicate=true and creates nothing. Returns the order with brokerOrderId, status (FILLED or WORKING), fillPrice, filledQuantity, protectiveStopOrderId and targetOrderId, or status REJECTED with the named failures. Report an order as submitted only when a brokerOrderId comes back.",
+  "type": "HTTP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Exchange symbol, for example BTCUSDT.",
+        "pattern": "^[A-Z0-9]{5,20}$"
+      },
+      "direction": {
+        "type": "string",
+        "description": "BUY to open long, SELL to open short.",
+        "enum": [
+          "BUY",
+          "SELL"
+        ]
+      },
+      "entryPrice": {
+        "type": "number",
+        "description": "Limit entry price, identical to the previewed plan.",
+        "exclusiveMinimum": 0
+      },
+      "stopPrice": {
+        "type": "number",
+        "description": "Protective stop price, identical to the previewed plan. Registered atomically with the entry.",
+        "exclusiveMinimum": 0
+      },
+      "targetPrice": {
+        "type": "number",
+        "description": "Profit target price, identical to the previewed plan. Registered atomically with the entry.",
+        "exclusiveMinimum": 0
+      },
+      "atr14": {
+        "type": "number",
+        "description": "The 15m atr14 used in the preview.",
+        "exclusiveMinimum": 0
+      },
+      "strategy": {
+        "type": "string",
+        "description": "Catalogue name of the strategy being traded.",
+        "pattern": "^[a-z_]{4,40}$"
+      },
+      "strategyScore": {
+        "type": "number",
+        "description": "Score of the selected strategy, identical to the preview.",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "runnerUpScore": {
+        "type": "number",
+        "description": "Score of the second best applicable strategy, identical to the preview.",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "idempotencyKey": {
+        "type": "string",
+        "description": "instrument|strategy|direction|setupTimestamp, where setupTimestamp is the lastClosedAtMs of the 15m timeframe that produced the setup. Same setup means same key, so a retry after an ambiguous timeout returns the original order instead of doubling the position.",
+        "pattern": "^[A-Z0-9]{5,20}\\|[a-z_]{4,40}\\|(BUY|SELL)\\|[0-9]{10,16}$"
+      }
+    },
+    "required": [
+      "symbol",
+      "direction",
+      "entryPrice",
+      "stopPrice",
+      "targetPrice",
+      "atr14",
+      "strategy",
+      "strategyScore",
+      "runnerUpScore",
+      "idempotencyKey"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "duplicate": {
+        "type": "boolean",
+        "description": "True means this idempotencyKey was already used; the original order is returned and nothing was created."
+      },
+      "message": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "order": {
+        "type": "object",
+        "properties": {
+          "brokerOrderId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "orderType": {
+            "type": "string"
+          },
+          "timeInForce": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "limitPrice": {
+            "type": "number"
+          },
+          "strategy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "submittedAtMs": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "FILLED",
+              "WORKING",
+              "REJECTED"
+            ]
+          },
+          "fillPrice": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "filledQuantity": {
+            "type": "number"
+          },
+          "protectiveStopOrderId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "targetOrderId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stopPrice": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "targetPrice": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "failures": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Present only when status is REJECTED."
+          }
+        }
+      },
+      "evaluation": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "orderType": {
+            "type": "string"
+          },
+          "entryPrice": {
+            "type": "number"
+          },
+          "stopPrice": {
+            "type": "number"
+          },
+          "targetPrice": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Zero means the trade cannot be taken."
+          },
+          "notional": {
+            "type": "number"
+          },
+          "riskAmount": {
+            "type": "number"
+          },
+          "riskPercentOfEquity": {
+            "type": "number"
+          },
+          "bindingConstraint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "risk",
+              "positionExposure",
+              "portfolioExposure",
+              "buyingPower",
+              "bookLiquidity",
+              null
+            ],
+            "description": "Which cap decided the size."
+          },
+          "estimatedFees": {
+            "type": "number"
+          },
+          "estimatedSlippageCost": {
+            "type": "number"
+          },
+          "estimatedSlippagePercent": {
+            "type": "number"
+          },
+          "rewardToRiskAfterCosts": {
+            "type": "number"
+          },
+          "referencePrice": {
+            "type": "number"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "passed": {
+                  "type": "boolean"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "passed": {
+            "type": "boolean",
+            "description": "False means do not submit."
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Check names. Copy verbatim into risk_checks.failures."
+          }
+        },
+        "description": "The checks the desk re-ran before accepting."
+      },
+      "mocked": {
+        "type": [
+          "boolean",
+          "null"
+        ],
+        "description": "True in a draft test: the call never left the runtime. Report SIMULATED, not a fill."
+      }
+    },
+    "required": [
+      "ok",
+      "order"
+    ]
+  },
+  "configuration": {
+    "method": "POST",
+    "url": "http://host.docker.internal:8090/orders"
+  },
+  "executionPolicy": {
+    "operation": "WRITE",
+    "riskLevel": "HIGH",
+    "approval": {
+      "required": true,
+      "allowSelfApproval": false,
+      "audience": {
+        "type": "RUN_REQUESTER",
+        "values": []
+      },
+      "expiresAfterSeconds": 300,
+      "onReject": "RETURN_TO_AGENT",
+      "onExpire": "REJECT"
+    }
+  }
+}

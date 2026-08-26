@@ -27,6 +27,8 @@ import java.util.Objects;
                 columnNames = {"license_code", "normalized_name", "deleted"}))
 public class CustomAgentEntity {
 
+    private static final int FIRST_VERSION = 1;
+
     @Id
     @Column(length = 36, nullable = false, updatable = false, columnDefinition = "CHAR(36)")
     private String id;
@@ -110,12 +112,16 @@ public class CustomAgentEntity {
         this.changeReason = changeReason;
     }
 
-    /** Creates a new agent identity whose first draft is version 1. */
+    /**
+     * Creates a new agent identity with no versions yet. The caller allocates the first
+     * draft with {@link #allocateVersion}, so the version counter is the single source of
+     * version numbers rather than one of two places that know the sequence starts at 1.
+     */
     public static CustomAgentEntity newLineage(String id, String licenseCode, String name,
             String normalizedName, String description, String actorId, String changeReason,
             Instant now) {
         return new CustomAgentEntity(id, licenseCode, name, normalizedName, description,
-                AgentLineageStatus.ACTIVE, null, 1, 2, false, now, now,
+                AgentLineageStatus.ACTIVE, null, null, FIRST_VERSION, false, now, now,
                 actorId, actorId, changeReason);
     }
 
@@ -210,7 +216,7 @@ public class CustomAgentEntity {
                     "Only active agents can be published; current status is " + status);
         }
         this.activeVersion = version;
-        if (draftVersion != null && draftVersion == version) {
+        if (draftVersion != null && draftVersion.intValue() == version) {
             this.draftVersion = null;
         }
         touch(actorId, changeReason, at);

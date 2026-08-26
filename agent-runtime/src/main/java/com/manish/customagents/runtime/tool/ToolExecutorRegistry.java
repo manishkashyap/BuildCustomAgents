@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
+import com.manish.customagents.contracts.ToolType;
 
 @Component
 public class ToolExecutorRegistry {
@@ -37,6 +38,11 @@ public class ToolExecutorRegistry {
 
     public boolean supports(ToolType type) {
         return executors.containsKey(type);
+    }
+
+    /** The types this registry can execute. Asserted against ExecutableToolTypes by test. */
+    public java.util.Set<ToolType> supportedTypes() {
+        return executors.keySet();
     }
 
     private boolean mustMock(ToolExecutionRequest request) {

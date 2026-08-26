@@ -36,6 +36,15 @@ The public status endpoint permits `DRAFT -> PUBLISHED` and `PUBLISHED -> RETIRE
 validates that every allowed tool is published and that every custom-agent tool targets a currently
 published agent at its configured version. `RETIRING` is internal-only.
 
+Publishing also enforces the prompt budgets in `PromptBudget`: one tool's model-facing content
+(name, description, `inputSchema`, `outputSchema`) against `MAX_TOOL_CHARACTERS`, an agent's own
+model-facing fields against `MAX_AGENT_CHARACTERS`, and the agent together with every tool it
+allows against `MAX_ASSEMBLED_CHARACTERS`. Exceeding any of them returns `422` with type
+`definition-budget-exceeded` and reports `characters`, `characterLimit`, `estimatedTokens` and
+`estimatedTokenLimit`. Drafts are never budget-checked, so an in-progress definition can be saved
+while it is still too large, and a later change to a budget cannot strand an already-published
+definition.
+
 Retirement uses `PUBLISHED -> RETIRING -> RETIRED`. After the guard is committed, Management checks
 published parent-agent dependencies and calls Runtime's service-authenticated endpoint:
 
