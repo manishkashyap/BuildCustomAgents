@@ -1,0 +1,17 @@
+# Points agent-runtime's Gemini adapter at the local stub in ./stub-llm instead of Google.
+#
+#   node dev-console/stub-llm/server.mjs        # terminal 1
+#   docker compose -f compose.yaml -f dev-console/compose.stub-llm.yaml up -d agent-runtime
+#
+# Layered as an override so the platform's own compose.yaml stays untouched.
+services:
+  agent-runtime:
+    environment:
+      GEMINI_ENABLED: "true"
+      GEMINI_API_KEY: stub-key-not-used
+      GEMINI_BASE_URL: http://host.docker.internal:4010
+      GEMINI_MODELS: gemini-3.6-flash
+      AGENT_RUNTIME_PROVIDER: GOOGLE_GEMINI
+      AGENT_RUNTIME_MODEL: gemini-3.6-flash
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
