@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.manish.customagents.runtime.config.AgentExecutionProperties;
 import com.manish.customagents.runtime.definition.ManagementAgentDefinitionRepository;
@@ -490,11 +491,16 @@ public class AgentExecutionService {
     private PublishedToolDefinition clarificationTool() {
         ObjectNode schema = objectMapper.createObjectNode().put("type", "object");
         ObjectNode propertiesNode = objectMapper.createObjectNode();
-        propertiesNode.set("category", type("string"));
+        propertiesNode.set("category", enumType(
+                "CALLER_CONTEXT", "MISSING_TASK_INPUT", "BUSINESS_DECISION",
+                "AGENT_CONFIGURATION", "PRIVILEGED_DECISION"));
         propertiesNode.set("question", type("string"));
         propertiesNode.set("reason", type("string"));
-        propertiesNode.set("responseType", type("string"));
-        propertiesNode.set("audienceHint", type("string"));
+        propertiesNode.set("responseType", enumType(
+                "FREE_TEXT", "BOOLEAN", "SINGLE_SELECT", "MULTI_SELECT",
+                "NUMBER", "DATE", "JSON", "FILE"));
+        propertiesNode.set("audienceHint", enumType(
+                "RUN_REQUESTER", "CALLER_AGENT", "CONFIGURED_ROLE_OR_GROUP"));
         schema.set("properties", propertiesNode);
         schema.set("required", objectMapper.valueToTree(List.of(
                 "category", "question", "reason", "responseType")));
@@ -506,6 +512,20 @@ public class AgentExecutionService {
 
     private ObjectNode type(String type) {
         return objectMapper.createObjectNode().put("type", type);
+    }
+
+    /**
+     * The executor rejects any responseType or category outside these enums, so the schema the model
+     * sees has to name them. Declared as a bare string, the model guesses ("json", "TEXT", ...) and
+     * every clarification attempt fails, which silently makes human-in-the-loop unreachable.
+     */
+    private ObjectNode enumType(String... values) {
+        ObjectNode node = objectMapper.createObjectNode().put("type", "string");
+        ArrayNode allowed = node.putArray("enum");
+        for (String value : values) {
+            allowed.add(value);
+        }
+        return node;
     }
 
     private boolean requiresApproval(PublishedToolDefinition tool) {

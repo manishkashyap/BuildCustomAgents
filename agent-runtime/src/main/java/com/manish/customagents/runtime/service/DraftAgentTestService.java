@@ -47,6 +47,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -325,11 +326,16 @@ public class DraftAgentTestService {
     private PublishedToolDefinition clarificationTool() {
         ObjectNode schema = objectMapper.createObjectNode().put("type", "object");
         ObjectNode fields = objectMapper.createObjectNode();
-        fields.set("category", type("string"));
+        fields.set("category", enumType(
+                "CALLER_CONTEXT", "MISSING_TASK_INPUT", "BUSINESS_DECISION",
+                "AGENT_CONFIGURATION", "PRIVILEGED_DECISION"));
         fields.set("question", type("string"));
         fields.set("reason", type("string"));
-        fields.set("responseType", type("string"));
-        fields.set("audienceHint", type("string"));
+        fields.set("responseType", enumType(
+                "FREE_TEXT", "BOOLEAN", "SINGLE_SELECT", "MULTI_SELECT",
+                "NUMBER", "DATE", "JSON", "FILE"));
+        fields.set("audienceHint", enumType(
+                "RUN_REQUESTER", "CALLER_AGENT", "CONFIGURED_ROLE_OR_GROUP"));
         schema.set("properties", fields);
         schema.set("required", objectMapper.valueToTree(List.of(
                 "category", "question", "reason", "responseType")));
@@ -342,6 +348,20 @@ public class DraftAgentTestService {
 
     private ObjectNode type(String name) {
         return objectMapper.createObjectNode().put("type", name);
+    }
+
+    /**
+     * The executor rejects any responseType or category outside these enums, so the schema the model
+     * sees has to name them. Declared as a bare string, the model guesses ("json", "TEXT", ...) and
+     * every clarification attempt fails, which silently makes human-in-the-loop unreachable.
+     */
+    private ObjectNode enumType(String... values) {
+        ObjectNode node = objectMapper.createObjectNode().put("type", "string");
+        ArrayNode allowed = node.putArray("enum");
+        for (String value : values) {
+            allowed.add(value);
+        }
+        return node;
     }
 
     private boolean requiresApproval(PublishedToolDefinition tool) {
