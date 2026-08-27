@@ -2,7 +2,6 @@ package com.manish.customagents.runtime.tool;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.manish.customagents.runtime.config.DynamicHttpToolProperties;
 import com.manish.customagents.runtime.errors.AgentExecutionException;
 
 import java.net.URI;
@@ -14,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -29,15 +29,15 @@ public class HttpToolExecutor implements ToolExecutor {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-    private final DynamicHttpToolProperties properties;
+    private final HttpEgressGuard egressGuard;
 
     public HttpToolExecutor(
-            RestClient.Builder restClientBuilder,
+            @Qualifier("httpToolRestClient") RestClient restClient,
             ObjectMapper objectMapper,
-            DynamicHttpToolProperties properties) {
-        this.restClient = restClientBuilder.clone().build();
+            HttpEgressGuard egressGuard) {
+        this.restClient = restClient;
         this.objectMapper = objectMapper;
-        this.properties = properties;
+        this.egressGuard = egressGuard;
     }
 
     @Override
@@ -51,7 +51,9 @@ public class HttpToolExecutor implements ToolExecutor {
         JsonNode configuration = tool.configuration();
         HttpMethod method = parseMethod(configuration.path("method").asText());
         URI uri = expandAndValidateUri(
-                configuration.path("url").asText(), executionRequest.arguments());
+                configuration.path("url").asText(),
+                executionRequest.arguments(),
+                executionRequest.context().licenseCode());
         try {
             RestClient.RequestBodySpec request = restClient.method(method)
                     .uri(uri)
@@ -81,7 +83,7 @@ public class HttpToolExecutor implements ToolExecutor {
         return method;
     }
 
-    private URI expandAndValidateUri(String template, JsonNode arguments) {
+    private URI expandAndValidateUri(String template, JsonNode arguments, String licenseCode) {
         if (template == null || template.isBlank()) {
             throw new AgentExecutionException("HTTP tool configuration.url must not be blank");
         }
@@ -105,21 +107,9 @@ public class HttpToolExecutor implements ToolExecutor {
                 || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))) {
             throw new AgentExecutionException("HTTP tool URL must be an absolute http/https URL without user info");
         }
-        if (!isAllowedHost(uri.getHost())) {
-            throw new AgentExecutionException("HTTP tool host is not allowlisted: " + uri.getHost());
-        }
+        // Checked after expansion, because the template is filled in with model-supplied arguments:
+        // the host that will actually be contacted is only known here.
+        egressGuard.check(uri, licenseCode);
         return uri;
-    }
-
-    private boolean isAllowedHost(String host) {
-        String normalizedHost = host.toLowerCase(Locale.ROOT);
-        return properties.getAllowedHosts().stream().anyMatch(entry -> {
-            String allowed = entry.strip().toLowerCase(Locale.ROOT);
-            if (allowed.startsWith("*.")) {
-                String suffix = allowed.substring(1);
-                return normalizedHost.endsWith(suffix) && normalizedHost.length() > suffix.length();
-            }
-            return normalizedHost.equals(allowed);
-        });
     }
 }

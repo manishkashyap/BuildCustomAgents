@@ -3,6 +3,7 @@ package com.manish.customagents.tool.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.manish.customagents.budget.DefinitionBudgetValidator;
+import com.manish.customagents.egress.service.ToolEgressValidator;
 import com.manish.customagents.error.DuplicateToolNameException;
 import com.manish.customagents.error.InvalidToolStatusTransitionException;
 import com.manish.customagents.error.ToolNotFoundException;
@@ -27,16 +28,19 @@ public class CustomToolService {
     private final CustomToolRepository repository;
     private final ToolDefinitionJsonMapper definitionJsonMapper;
     private final DefinitionBudgetValidator budgetValidator;
+    private final ToolEgressValidator egressValidator;
     private final Clock clock;
 
     public CustomToolService(
             CustomToolRepository repository,
             ToolDefinitionJsonMapper definitionJsonMapper,
             DefinitionBudgetValidator budgetValidator,
+            ToolEgressValidator egressValidator,
             Clock clock) {
         this.repository = repository;
         this.definitionJsonMapper = definitionJsonMapper;
         this.budgetValidator = budgetValidator;
+        this.egressValidator = egressValidator;
         this.clock = clock;
     }
 
@@ -120,7 +124,11 @@ public class CustomToolService {
         }
         // Checked here rather than on create so a draft can be saved while it is still being
         // written, and so a budget change never strands an already-published tool.
-        budgetValidator.checkTool(definitionJsonMapper.read(entity.getDefinitionJson()));
+        CreateToolRequest definition = definitionJsonMapper.read(entity.getDefinitionJson());
+        budgetValidator.checkTool(definition);
+        // Same reasoning as the budget check: validated on publish, not on save, so a draft can be
+        // written against a host an administrator has not allowed yet.
+        egressValidator.check(licenseCode, definition.type(), definition.configuration());
         entity.publish(clock.instant());
         repository.saveAndFlush(entity);
         return statusResponse(entity);

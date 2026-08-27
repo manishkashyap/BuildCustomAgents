@@ -54,7 +54,13 @@ agents:
     interaction-token-ttl: ${AGENT_TEST_INTERACTION_TOKEN_TTL:30m}
   tools:
     http:
-      allowed-hosts: ${AGENT_HTTP_TOOL_ALLOWED_HOSTS:host.docker.internal,api.open-meteo.com,geocoding-api.open-meteo.com}
+      # Hosts allowed for EVERY tenant. A local-development convenience only - leave empty in a
+      # deployed environment and register real destinations per tenant under /api/v1/egress-hosts.
+      allowed-hosts: ${AGENT_HTTP_TOOL_ALLOWED_HOSTS:}
+      # Lets tools reach loopback/link-local/private addresses. Never enable outside local dev.
+      allow-private-networks: ${AGENT_HTTP_TOOL_ALLOW_PRIVATE_NETWORKS:false}
+      # How long a tenant's allowlist is cached, and therefore the revocation delay.
+      allowlist-cache-ttl: ${AGENT_HTTP_TOOL_ALLOWLIST_CACHE_TTL:30s}
   llm:
     openai:
       enabled: ${OPENAI_ENABLED:false}

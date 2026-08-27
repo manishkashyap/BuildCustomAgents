@@ -120,11 +120,39 @@ for a response shape, so the runtime appends it to the description it sends the 
 means a tool can describe its response as a schema instead of as prose, and the model gets a
 contract rather than a paragraph.
 
-HTTP tool destinations are denied unless the host is allowlisted:
+HTTP tool destinations are denied unless the host is allowed for the tenant. The allowlist is
+per-tenant data, not process configuration, because every tenant registers its own tool hosts:
 
 ```bash
-export AGENT_HTTP_TOOL_ALLOWED_HOSTS=api.example.com
+curl -X POST http://localhost:8080/api/v1/egress-hosts \
+  --header 'X-Agent-License-Code: DEV_LICENSE' \
+  --header 'X-Agent-User-Id: admin-user' \
+  --header 'X-Agent-Roles: AGENT_ADMIN' \
+  --header 'Content-Type: application/json' \
+  --data '{"hostPattern":"api.example.com","description":"Campaign API"}'
 ```
+
+Writes require `AGENT_ADMIN` or `PLATFORM_ADMIN`: if whoever authors a tool can also approve its
+destination, the allowlist is not a control. `*.example.com` covers subdomains but never the apex,
+and a wildcard must span at least two labels, so `*.com` is rejected.
+
+Enforcement happens twice. Publishing a tool whose host is not allowed returns `422`
+`tool-host-not-allowed`, so the failure surfaces during authoring. The runtime re-checks on every
+call, so revoking a host stops already-published agents within the allowlist cache TTL
+(`AGENT_HTTP_TOOL_ALLOWLIST_CACHE_TTL`, 30s by default). A URL whose *host* is a template variable
+is refused at publish time — the destination would otherwise be chosen by model-supplied arguments.
+
+Two things stay platform policy and are deliberately not tenant-configurable:
+
+- Hosts resolving to loopback, link-local (`169.254.169.254`), private, or CGNAT ranges are refused
+  no matter what a tenant registers. Allowlisting by name alone would let a tenant point a host they
+  own at cloud instance metadata. Set `AGENT_HTTP_TOOL_ALLOW_PRIVATE_NETWORKS=true` for local
+  development only.
+- Redirects are never followed, since a `302` to an internal address would bypass the check.
+
+`AGENT_HTTP_TOOL_ALLOWED_HOSTS` still exists but now means "allowed for *every* tenant". Keep it
+empty in a deployed environment; it is there so local examples can reach their APIs without first
+registering a tenant.
 
 Publishing is refused with `422` if a definition would not fit in a model request. The budgets are
 per tool, per agent, and per agent-plus-its-tools; see `PromptBudget`. Drafts are not checked, so

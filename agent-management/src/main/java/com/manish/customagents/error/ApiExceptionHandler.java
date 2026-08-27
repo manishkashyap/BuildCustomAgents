@@ -75,6 +75,30 @@ public class ApiExceptionHandler {
                 exception.getMessage(), "runtime-retirement-check-unavailable"));
     }
 
+    @ExceptionHandler(ToolHostNotAllowedException.class)
+    ResponseEntity<ProblemDetail> handleToolHostNotAllowed(ToolHostNotAllowedException exception) {
+        ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Tool host is not allowed", exception.getMessage(), "tool-host-not-allowed");
+        if (exception.host() != null) {
+            problem.setProperty("host", exception.host());
+        }
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(problem);
+    }
+
+    @ExceptionHandler(EgressHostNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleEgressHostNotFound(EgressHostNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem(
+                HttpStatus.NOT_FOUND, "Egress host not found", exception.getMessage(),
+                "egress-host-not-found"));
+    }
+
+    @ExceptionHandler(DuplicateEgressHostException.class)
+    ResponseEntity<ProblemDetail> handleDuplicateEgressHost(DuplicateEgressHostException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem(
+                HttpStatus.CONFLICT, "Egress host already registered", exception.getMessage(),
+                "egress-host-already-exists"));
+    }
+
     @ExceptionHandler(ToolNotFoundException.class)
     ResponseEntity<ProblemDetail> handleToolNotFound(ToolNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem(

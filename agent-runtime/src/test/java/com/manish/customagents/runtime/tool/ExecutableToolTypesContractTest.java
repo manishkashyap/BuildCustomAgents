@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.manish.customagents.contracts.ExecutableToolTypes;
-import com.manish.customagents.runtime.config.DynamicHttpToolProperties;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
@@ -20,7 +19,7 @@ class ExecutableToolTypesContractTest {
     void contractMatchesTheRegisteredExecutors() {
         ToolExecutorRegistry registry = new ToolExecutorRegistry(List.of(
                 new HttpToolExecutor(
-                        RestClient.builder(), new ObjectMapper(), new DynamicHttpToolProperties()),
+                        RestClient.builder().build(), new ObjectMapper(), null),
                 new BuiltInToolExecutor(),
                 new CustomAgentToolExecutor()));
 

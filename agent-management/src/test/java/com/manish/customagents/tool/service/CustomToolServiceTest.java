@@ -8,7 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.manish.customagents.egress.service.TenantEgressHostService;
+import com.manish.customagents.egress.service.ToolEgressValidator;
 import com.manish.customagents.error.DuplicateToolNameException;
+import com.manish.customagents.error.ToolHostNotAllowedException;
 import com.manish.customagents.tool.enums.ToolStatus;
 import com.manish.customagents.contracts.ToolType;
 import com.manish.customagents.budget.DefinitionBudgetValidator;
@@ -37,6 +40,9 @@ class CustomToolServiceTest {
     @Mock
     private CustomToolRepository repository;
 
+    @Mock
+    private TenantEgressHostService egressHosts;
+
     private CustomToolService service;
     private ObjectMapper objectMapper;
 
@@ -47,6 +53,7 @@ class CustomToolServiceTest {
                 repository,
                 new ToolDefinitionJsonMapper(objectMapper),
                 new DefinitionBudgetValidator(objectMapper),
+                new ToolEgressValidator(egressHosts),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -142,6 +149,56 @@ class CustomToolServiceTest {
         assertThat(response.definition().name()).isEqualTo("campaign.read");
         assertThat(entity.getUpdatedAt()).isEqualTo(NOW);
         verify(repository).saveAndFlush(entity);
+    }
+
+    @Test
+    void refusesToPublishAToolWhoseHostIsNotOnTheTenantAllowlist() {
+        CustomToolEntity entity = entity(request("campaign.get"), ToolStatus.DRAFT);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse("tool-1", "tenant-1"))
+                .thenReturn(Optional.of(entity));
+        when(egressHosts.activePatterns("tenant-1")).thenReturn(List.of("api.other.com"));
+
+        assertThatThrownBy(() -> service.updateStatus("tenant-1", "tool-1", ToolStatus.PUBLISHED))
+                .isInstanceOf(ToolHostNotAllowedException.class)
+                .hasMessageContaining("api.example.com");
+
+        assertThat(entity.getStatus()).isEqualTo(ToolStatus.DRAFT);
+        verify(repository, never()).saveAndFlush(entity);
+    }
+
+    @Test
+    void publishesWhenAWildcardPatternCoversTheHost() {
+        CustomToolEntity entity = entity(request("campaign.get"), ToolStatus.DRAFT);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse("tool-1", "tenant-1"))
+                .thenReturn(Optional.of(entity));
+        when(egressHosts.activePatterns("tenant-1")).thenReturn(List.of("*.example.com"));
+
+        assertThat(service.updateStatus("tenant-1", "tool-1", ToolStatus.PUBLISHED).status())
+                .isEqualTo(ToolStatus.PUBLISHED);
+    }
+
+    @Test
+    void refusesToPublishAToolWhoseHostIsItselfATemplateVariable() {
+        // The destination would be chosen by tool arguments at run time, so the allowlist could not
+        // meaningfully constrain it.
+        CreateToolRequest templatedHost = new CreateToolRequest(
+                "campaign.get",
+                "Gets a campaign",
+                ToolType.HTTP,
+                objectMapper.createObjectNode().put("type", "object"),
+                null,
+                objectMapper.createObjectNode()
+                        .put("method", "GET").put("url", "https://{host}/campaigns"),
+                null);
+        CustomToolEntity entity = entity(templatedHost, ToolStatus.DRAFT);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse("tool-1", "tenant-1"))
+                .thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> service.updateStatus("tenant-1", "tool-1", ToolStatus.PUBLISHED))
+                .isInstanceOf(ToolHostNotAllowedException.class)
+                .hasMessageContaining("literal host");
+
+        verify(repository, never()).saveAndFlush(entity);
     }
 
     private CustomToolEntity entity(CreateToolRequest definition, ToolStatus status) {

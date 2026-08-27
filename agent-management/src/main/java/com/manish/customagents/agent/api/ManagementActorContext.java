@@ -9,13 +9,13 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-record ManagementActorContext(String actorId, Set<String> roles) {
-    ManagementActorContext requireAnyRole(String... required) {
+public record ManagementActorContext(String actorId, Set<String> roles) {
+    public ManagementActorContext requireAnyRole(String... required) {
         if (Arrays.stream(required).anyMatch(roles::contains)) return this;
         throw new AccessDeniedException("Authenticated user lacks a required agent-management role");
     }
 
-    static ManagementActorContext resolve(Authentication authentication, String fallbackActor,
+    public static ManagementActorContext resolve(Authentication authentication, String fallbackActor,
             String roleHeader, String licenseCode) {
         if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
             Set<String> roles = Arrays.stream(roleHeader.split(","))
