@@ -213,4 +213,6 @@ public class AgentToolInvocationEntity {
     public String getResultJson() { return resultJson; }
     public ToolInvocationStatus getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getErrorMessage() { return errorMessage; }
+    public Long getDurationMs() { return durationMs; }
 }

@@ -2,10 +2,12 @@ package com.manish.customagents.runtime.api;
 
 import com.manish.customagents.runtime.service.AgentExecutionService;
 import com.manish.customagents.runtime.service.AgentRunControlService;
+import com.manish.customagents.runtime.service.AgentRunTraceService;
 import com.manish.customagents.runtime.model.AddHumanInstructionRequest;
 import com.manish.customagents.runtime.model.CancelAgentRunRequest;
 import com.manish.customagents.runtime.model.HumanInstructionResponse;
 import com.manish.customagents.runtime.model.AgentRunResponse;
+import com.manish.customagents.runtime.model.AgentRunTraceResponse;
 import com.manish.customagents.runtime.model.RunAgentRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,10 +41,15 @@ public class AgentRunController {
 
     private final AgentExecutionService executionService;
     private final AgentRunControlService controlService;
+    private final AgentRunTraceService traceService;
 
-    public AgentRunController(AgentExecutionService executionService, AgentRunControlService controlService) {
+    public AgentRunController(
+            AgentExecutionService executionService,
+            AgentRunControlService controlService,
+            AgentRunTraceService traceService) {
         this.executionService = executionService;
         this.controlService = controlService;
+        this.traceService = traceService;
     }
 
     @Operation(
@@ -78,6 +85,24 @@ public class AgentRunController {
             @PathVariable @NotBlank @jakarta.validation.constraints.Size(max = 36) String runId) {
         RuntimeActorContext.resolve(authentication, "local-requester", Set.of("RUN_REQUESTER"), licenseCode);
         return ResponseEntity.ok(executionService.get(licenseCode, runId));
+    }
+
+    @Operation(
+            summary = "Read the turn-by-turn trace of a run",
+            description = "Returns every persisted generation turn for the run's whole tree, with the token usage of "
+                    + "each individual turn and the tool calls it dispatched. Read-only: it never alters run state. "
+                    + "Any run id in a tree returns that tree, keyed by its root.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Trace assembled"),
+            @ApiResponse(responseCode = "404", description = "Run not found in this tenant", content = @Content(schema = @Schema(implementation = org.springframework.http.ProblemDetail.class)))
+    })
+    @GetMapping("/{runId}/turns")
+    public ResponseEntity<AgentRunTraceResponse> turns(
+            @RequestHeader(AgentApiHeaders.LICENSE_CODE) @NotBlank String licenseCode,
+            Authentication authentication,
+            @PathVariable @NotBlank @jakarta.validation.constraints.Size(max = 36) String runId) {
+        RuntimeActorContext.resolve(authentication, "local-requester", Set.of("RUN_REQUESTER"), licenseCode);
+        return ResponseEntity.ok(traceService.trace(licenseCode, runId));
     }
 
     @PostMapping(path = "/{runId}/instructions", consumes = MediaType.APPLICATION_JSON_VALUE)

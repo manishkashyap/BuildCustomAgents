@@ -3,6 +3,7 @@ package com.manish.customagents.runtime.api;
 import com.manish.customagents.runtime.definition.AgentNotPublishedException;
 import com.manish.customagents.runtime.definition.AgentNotDraftException;
 import com.manish.customagents.runtime.errors.AgentExecutionException;
+import com.manish.customagents.runtime.errors.AgentRunNotFoundException;
 import com.manish.customagents.runtime.errors.DraftRevisionConflictException;
 import com.manish.customagents.runtime.errors.HumanInteractionConflictException;
 import com.manish.customagents.runtime.errors.HumanInteractionNotFoundException;
@@ -39,6 +40,11 @@ public class RuntimeApiExceptionHandler {
     @ExceptionHandler(AgentNotFoundException.class)
     ResponseEntity<ProblemDetail> notFound(AgentNotFoundException exception) {
         return response(HttpStatus.NOT_FOUND, "Agent not found", exception.getMessage(), "agent-not-found");
+    }
+
+    @ExceptionHandler(AgentRunNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleAgentRunNotFound(AgentRunNotFoundException exception) {
+        return response(HttpStatus.NOT_FOUND, "Agent run not found", exception.getMessage(), "agent-run-not-found");
     }
 
     @ExceptionHandler(HumanInteractionNotFoundException.class)

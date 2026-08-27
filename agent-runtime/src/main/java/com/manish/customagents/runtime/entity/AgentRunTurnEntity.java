@@ -45,4 +45,11 @@ public class AgentRunTurnEntity {
         this.responseJson = responseJson;
         this.createdAt = createdAt;
     }
+
+    public Long getId() { return id; }
+    public String getRunId() { return runId; }
+    public int getTurnNumber() { return turnNumber; }
+    public String getRequestJson() { return requestJson; }
+    public String getResponseJson() { return responseJson; }
+    public Instant getCreatedAt() { return createdAt; }
 }
