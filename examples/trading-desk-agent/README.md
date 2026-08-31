@@ -22,16 +22,33 @@ calculation.
 
 ## Required before anything works
 
-**Allowlist the sidecar host.** The allowlist is empty by default (`application.yml` binds
-`AGENT_HTTP_TOOL_ALLOWED_HOSTS` with no fallback), so every HTTP tool fails until you set it:
+**Allow the sidecar host for your tenant.** HTTP egress is allowlisted per tenant, so publishing a
+tool whose host is not registered is refused with `422 tool-host-not-allowed`. Register it once for
+the license code you seed with (writes need `AGENT_ADMIN` or `PLATFORM_ADMIN`):
 
 ```bash
-AGENT_HTTP_TOOL_ALLOWED_HOSTS=host.docker.internal
+curl -X POST http://localhost:8080/api/v1/egress-hosts \
+  --header 'X-Agent-License-Code: account-123' \
+  --header 'X-Agent-User-Id: user-123' \
+  --header 'X-Agent-Roles: AGENT_ADMIN' \
+  --header 'Content-Type: application/json' \
+  --data '{"hostPattern":"host.docker.internal","description":"trading desk sidecar"}'
 ```
 
-Add it to your `.env` and restart the runtime, or you get
-`HTTP tool host is not allowlisted: host.docker.internal`. Keep the weather hosts too if you want
-both examples working — the value is a comma-separated list.
+**Allow private addresses.** `host.docker.internal` resolves to the Docker host gateway, a private
+address that the runtime refuses by default — an allowlisted name that resolves somewhere internal is
+exactly the case that check exists for. For local development, add to your `.env` and restart the
+runtime:
+
+```bash
+AGENT_HTTP_TOOL_ALLOW_PRIVATE_NETWORKS=true
+```
+
+Without it the call fails with
+`HTTP tool host host.docker.internal resolves to a blocked network (private)`.
+
+`AGENT_HTTP_TOOL_ALLOWED_HOSTS` still exists but now means "allowed for *every* tenant" and should be
+empty outside local development; the per-tenant registration above is the supported path.
 
 The tool URLs point at `host.docker.internal:8090`, which is how a container reaches a process on
 the host. On Docker Desktop that name resolves already. On Linux, add this to the `agent-runtime`
@@ -282,8 +299,11 @@ Work through these in order:
 
 1. **Is the sidecar running?** `curl localhost:8090/health` should return
    `{"ok": true, "mode": "PAPER", ...}`.
-2. **Is the host allowlisted?** Without it the error names the host:
-   `HTTP tool host is not allowlisted: host.docker.internal`.
+2. **Is the host allowed for this tenant, and are private addresses permitted?** The two failures
+   read differently:
+   `HTTP tool host is not on this tenant's egress allowlist: host.docker.internal` means no
+   registration; `... resolves to a blocked network (private)` means
+   `AGENT_HTTP_TOOL_ALLOW_PRIVATE_NETWORKS` is still false.
 3. **Can the runtime resolve the host in the tool URLs?** This is the one that catches people.
    The five tool files point at `host.docker.internal`, which resolves *inside* a Docker container
    on Docker Desktop and nowhere else. Running the runtime from an IDE or `mvn spring-boot:run`

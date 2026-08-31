@@ -107,10 +107,20 @@ Next: open Agent Studio, go to Draft test, paste the agent id, and run
   task:  Evaluate BTCUSDT and either submit one validated order or return NO_TRADE.
   input: {"symbol": "BTCUSDT"}
 
-Reminder: the runtime needs the desk host allowlisted, or every call fails with
-"HTTP tool host is not allowlisted".
+Reminder: HTTP egress is allowlisted per tenant. Register the desk host once for this
+license code, or publishing the tools is refused with 422 tool-host-not-allowed:
 
-  AGENT_HTTP_TOOL_ALLOWED_HOSTS=host.docker.internal
+  curl -X POST ${MANAGEMENT_URL}/api/v1/egress-hosts \\
+    -H 'Content-Type: application/json' \\
+    -H 'X-Agent-License-Code: ${LICENSE_CODE}' \\
+    -H 'X-Agent-User-Id: ${USER_ID}' \\
+    -H 'X-Agent-Roles: AGENT_ADMIN' \\
+    -d '{"hostPattern":"host.docker.internal"}'
+
+host.docker.internal is a private address, which the runtime refuses by default. For
+local development set this in .env and restart the runtime:
+
+  AGENT_HTTP_TOOL_ALLOW_PRIVATE_NETWORKS=true
 
 The sidecar must be running and able to reach api.binance.com:
 
