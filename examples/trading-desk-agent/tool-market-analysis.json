@@ -470,6 +470,7 @@
     "operation": "READ",
     "riskLevel": "LOW",
     "approval": {
+      
       "required": false
     }
   }
