@@ -1,0 +1,580 @@
+{
+ "ok": true,
+ "symbol": "BTCUSDT",
+ "asOfMs": 1788880754967,
+ "asOf": "2026-09-08T15:19:14+00:00",
+ "candlesPerTimeframe": 200,
+ "timeframeRoles": {
+  "1d": "primary trend, volatility environment, major levels",
+  "4h": "intermediate trend, and whether a daily move has follow-through",
+  "1h": "regime and directional bias",
+  "15m": "setup and structural confirmation",
+  "5m": "entry confirmation and momentum"
+ },
+ "dataValidation": {
+  "valid": true,
+  "issues": []
+ },
+ "quote": {
+  "bid": 78650.52,
+  "ask": 78650.53,
+  "bidQuantity": 6.94666,
+  "askQuantity": 0.638,
+  "mid": 78650.525,
+  "spreadAbsolute": 0.01,
+  "spreadPercent": 1.3e-05,
+  "lastPrice": 78650.53,
+  "quoteVolume24h": 1475531670.2372942,
+  "exchangeTimeMs": 1788880756009
+ },
+ "timeframes": {
+  "5m": {
+   "timeframe": "5m",
+   "candles": 200,
+   "lastClosedAtMs": 1788880499999,
+   "close": 78644.96,
+   "movingAverages": {
+    "ema9": 78505.1206,
+    "ema20": 78396.9811,
+    "ema50": 78377.5804,
+    "ema200": 78697.1653,
+    "sma20": 78259.799,
+    "sma50": 78333.215
+   },
+   "distanceFromMasPercent": {
+    "ema20": 0.3163,
+    "ema50": 0.3411,
+    "ema200": -0.0663
+   },
+   "momentum": {
+    "rsi14": 66.99,
+    "rsi14FiveBarsAgo": 64.9,
+    "macd": 86.731573,
+    "macdSignal": 35.45145,
+    "macdHistogram": 51.280123,
+    "macdHistogramThreeBarsAgo": 59.803435
+   },
+   "volatility": {
+    "atr14": 142.683878,
+    "atrPercentOfPrice": 0.1814,
+    "atr14TwentyBarsAgo": 113.755242,
+    "bollingerMiddle": 78259.799,
+    "bollingerUpper": 78803.9407,
+    "bollingerLower": 77715.6573,
+    "bollingerPercentB": 0.8539,
+    "bollingerBandwidth": 0.013906,
+    "bollingerBandwidthTwentyBarsAgo": 0.004786
+   },
+   "trendStrength": {
+    "adx14": 21.9,
+    "plusDi": 29.89,
+    "minusDi": 16.13
+   },
+   "structure": {
+    "classification": "HIGHER_HIGHS_HIGHER_LOWS",
+    "lastSwingHighs": [
+     78450.0,
+     78545.46,
+     78630.81
+    ],
+    "lastSwingLows": [
+     78280.35,
+     77620.01,
+     78248.0
+    ]
+   },
+   "levels": {
+    "support": [
+     {
+      "level": 78637.12956522,
+      "touches": 23,
+      "low": 78450.0,
+      "high": 78882.0
+     },
+     {
+      "level": 78271.43272727,
+      "touches": 11,
+      "low": 78179.98,
+      "high": 78368.0
+     },
+     {
+      "level": 77620.01,
+      "touches": 1,
+      "low": 77620.01,
+      "high": 77620.01
+     }
+    ],
+    "resistance": [
+     {
+      "level": 78981.75,
+      "touches": 4,
+      "low": 78969.99,
+      "high": 78994.5
+     },
+     {
+      "level": 79215.688,
+      "touches": 5,
+      "low": 79146.0,
+      "high": 79302.07
+     },
+     {
+      "level": 79472.47,
+      "touches": 4,
+      "low": 79456.82,
+      "high": 79485.0
+     }
+    ],
+    "twentyBarHigh": 78662.99,
+    "twentyBarLow": 77620.01
+   },
+   "volume": {
+    "last": 36.1161,
+    "average20": 129.4284,
+    "ratioToAverage": 0.279,
+    "trades": 15938
+   },
+   "conditions": {
+    "closedAboveTwentyBarHigh": false,
+    "closedBelowTwentyBarLow": false,
+    "upperWickRejection": false,
+    "lowerWickRejection": false,
+    "insideBar": false
+   }
+  },
+  "15m": {
+   "timeframe": "15m",
+   "candles": 200,
+   "lastClosedAtMs": 1788880499999,
+   "close": 78644.96,
+   "movingAverages": {
+    "ema9": 78394.9529,
+    "ema20": 78400.6777,
+    "ema50": 78560.9849,
+    "ema200": 79284.7926,
+    "sma20": 78391.017,
+    "sma50": 78533.909
+   },
+   "distanceFromMasPercent": {
+    "ema20": 0.3116,
+    "ema50": 0.1069,
+    "ema200": -0.807
+   },
+   "momentum": {
+    "rsi14": 56.39,
+    "rsi14FiveBarsAgo": 35.59,
+    "macd": -44.315318,
+    "macdSignal": -89.61408,
+    "macdHistogram": 45.298762,
+    "macdHistogramThreeBarsAgo": -15.341164
+   },
+   "volatility": {
+    "atr14": 231.971239,
+    "atrPercentOfPrice": 0.295,
+    "atr14TwentyBarsAgo": 176.093297,
+    "bollingerMiddle": 78391.017,
+    "bollingerUpper": 78841.6295,
+    "bollingerLower": 77940.4045,
+    "bollingerPercentB": 0.7818,
+    "bollingerBandwidth": 0.011497,
+    "bollingerBandwidthTwentyBarsAgo": 0.007187
+   },
+   "trendStrength": {
+    "adx14": 27.6,
+    "plusDi": 22.51,
+    "minusDi": 25.7
+   },
+   "structure": {
+    "classification": "LOWER_HIGHS_LOWER_LOWS",
+    "lastSwingHighs": [
+     78581.8,
+     78994.5,
+     78545.46
+    ],
+    "lastSwingLows": [
+     78271.63,
+     78215.36,
+     77620.01
+    ]
+   },
+   "levels": {
+    "support": [
+     {
+      "level": 78249.122,
+      "touches": 5,
+      "low": 78179.98,
+      "high": 78317.03
+     },
+     {
+      "level": 77620.01,
+      "touches": 1,
+      "low": 77620.01,
+      "high": 77620.01
+     }
+    ],
+    "resistance": [
+     {
+      "level": 79225.19027027,
+      "touches": 37,
+      "low": 78545.46,
+      "high": 79800.0
+     },
+     {
+      "level": 79976.68,
+      "touches": 3,
+      "low": 79926.04,
+      "high": 80034.0
+     },
+     {
+      "level": 80426.0,
+      "touches": 1,
+      "low": 80426.0,
+      "high": 80426.0
+     }
+    ],
+    "twentyBarHigh": 78994.5,
+    "twentyBarLow": 77620.01
+   },
+   "volume": {
+    "last": 126.6584,
+    "average20": 258.0275,
+    "ratioToAverage": 0.491,
+    "trades": 41512
+   },
+   "conditions": {
+    "closedAboveTwentyBarHigh": false,
+    "closedBelowTwentyBarLow": false,
+    "upperWickRejection": false,
+    "lowerWickRejection": false,
+    "insideBar": false
+   }
+  },
+  "1h": {
+   "timeframe": "1h",
+   "candles": 200,
+   "lastClosedAtMs": 1788879599999,
+   "close": 78567.52,
+   "movingAverages": {
+    "ema9": 78485.3677,
+    "ema20": 78717.2324,
+    "ema50": 79110.8692,
+    "ema200": 79026.3854,
+    "sma20": 78782.1425,
+    "sma50": 79284.2146
+   },
+   "distanceFromMasPercent": {
+    "ema20": -0.1902,
+    "ema50": -0.6868,
+    "ema200": -0.5806
+   },
+   "momentum": {
+    "rsi14": 45.14,
+    "rsi14FiveBarsAgo": 43.83,
+    "macd": -272.440736,
+    "macdSignal": -255.412753,
+    "macdHistogram": -17.027983,
+    "macdHistogramThreeBarsAgo": -24.625283
+   },
+   "volatility": {
+    "atr14": 395.898593,
+    "atrPercentOfPrice": 0.5039,
+    "atr14TwentyBarsAgo": 287.201004,
+    "bollingerMiddle": 78782.1425,
+    "bollingerUpper": 79565.9493,
+    "bollingerLower": 77998.3357,
+    "bollingerPercentB": 0.3631,
+    "bollingerBandwidth": 0.019898,
+    "bollingerBandwidthTwentyBarsAgo": 0.018441
+   },
+   "trendStrength": {
+    "adx14": 35.29,
+    "plusDi": 11.96,
+    "minusDi": 31.87
+   },
+   "structure": {
+    "classification": "LOWER_HIGHS_LOWER_LOWS",
+    "lastSwingHighs": [
+     79419.17,
+     79485.0,
+     78994.5
+    ],
+    "lastSwingLows": [
+     78680.0,
+     78781.07,
+     78179.98
+    ]
+   },
+   "levels": {
+    "support": [
+     {
+      "level": 78424.0,
+      "touches": 1,
+      "low": 78424.0,
+      "high": 78424.0
+     },
+     {
+      "level": 78189.085,
+      "touches": 4,
+      "low": 78179.98,
+      "high": 78202.52
+     },
+     {
+      "level": 77667.65125,
+      "touches": 8,
+      "low": 77478.0,
+      "high": 77900.0
+     }
+    ],
+    "resistance": [
+     {
+      "level": 78819.77833333,
+      "touches": 6,
+      "low": 78660.0,
+      "high": 79001.1
+     },
+     {
+      "level": 79649.94307692,
+      "touches": 26,
+      "low": 79220.61,
+      "high": 80200.0
+     },
+     {
+      "level": 80577.43666667,
+      "touches": 3,
+      "low": 80502.87,
+      "high": 80669.45
+     }
+    ],
+    "twentyBarHigh": 79485.0,
+    "twentyBarLow": 77620.01
+   },
+   "volume": {
+    "last": 885.7059,
+    "average20": 851.9855,
+    "ratioToAverage": 1.04,
+    "trades": 216220
+   },
+   "conditions": {
+    "closedAboveTwentyBarHigh": false,
+    "closedBelowTwentyBarLow": false,
+    "upperWickRejection": false,
+    "lowerWickRejection": false,
+    "insideBar": false
+   }
+  },
+  "4h": {
+   "timeframe": "4h",
+   "candles": 200,
+   "lastClosedAtMs": 1788868799999,
+   "close": 78430.01,
+   "movingAverages": {
+    "ema9": 79004.1772,
+    "ema20": 79276.8429,
+    "ema50": 79013.7371,
+    "ema200": 72415.4776,
+    "sma20": 79494.1995,
+    "sma50": 79065.2534
+   },
+   "distanceFromMasPercent": {
+    "ema20": -1.0682,
+    "ema50": -0.7388,
+    "ema200": 8.3056
+   },
+   "momentum": {
+    "rsi14": 39.72,
+    "rsi14FiveBarsAgo": 42.31,
+    "macd": -166.570087,
+    "macdSignal": 22.272826,
+    "macdHistogram": -188.842913,
+    "macdHistogramThreeBarsAgo": -145.453077
+   },
+   "volatility": {
+    "atr14": 703.342548,
+    "atrPercentOfPrice": 0.8968,
+    "atr14TwentyBarsAgo": 980.024249,
+    "bollingerMiddle": 79494.1995,
+    "bollingerUpper": 80486.5284,
+    "bollingerLower": 78501.8706,
+    "bollingerPercentB": -0.0362,
+    "bollingerBandwidth": 0.024966,
+    "bollingerBandwidthTwentyBarsAgo": 0.084341
+   },
+   "trendStrength": {
+    "adx14": 16.01,
+    "plusDi": 13.84,
+    "minusDi": 23.69
+   },
+   "structure": {
+    "classification": "LOWER_HIGHS_LOWER_LOWS",
+    "lastSwingHighs": [
+     80107.99,
+     80559.99,
+     79485.0
+    ],
+    "lastSwingLows": [
+     79442.0,
+     79233.0,
+     78680.0
+    ]
+   },
+   "levels": {
+    "support": [
+     {
+      "level": 76623.66833333,
+      "touches": 6,
+      "low": 76264.0,
+      "high": 77000.0
+     },
+     {
+      "level": 75545.67,
+      "touches": 1,
+      "low": 75545.67,
+      "high": 75545.67
+     },
+     {
+      "level": 64598.20125,
+      "touches": 16,
+      "low": 63806.27,
+      "high": 65474.46
+     }
+    ],
+    "resistance": [
+     {
+      "level": 78698.87555556,
+      "touches": 18,
+      "low": 77547.96,
+      "high": 79500.0
+     },
+     {
+      "level": 80102.66333333,
+      "touches": 3,
+      "low": 80000.0,
+      "high": 80200.0
+     },
+     {
+      "level": 80559.99,
+      "touches": 1,
+      "low": 80559.99,
+      "high": 80559.99
+     }
+    ],
+    "twentyBarHigh": 80559.99,
+    "twentyBarLow": 78179.98
+   },
+   "volume": {
+    "last": 2614.9205,
+    "average20": 1967.3793,
+    "ratioToAverage": 1.329,
+    "trades": 413366
+   },
+   "conditions": {
+    "closedAboveTwentyBarHigh": false,
+    "closedBelowTwentyBarLow": false,
+    "upperWickRejection": true,
+    "lowerWickRejection": true,
+    "insideBar": false
+   }
+  },
+  "1d": {
+   "timeframe": "1d",
+   "candles": 200,
+   "lastClosedAtMs": 1788825599999,
+   "close": 79112.01,
+   "movingAverages": {
+    "ema9": 79069.8501,
+    "ema20": 76746.5463,
+    "ema50": 72056.4172,
+    "ema200": 69849.2147,
+    "sma20": 77982.351,
+    "sma50": 69730.6908
+   },
+   "distanceFromMasPercent": {
+    "ema20": 3.0822,
+    "ema50": 9.7918,
+    "ema200": 13.2611
+   },
+   "momentum": {
+    "rsi14": 62.73,
+    "rsi14FiveBarsAgo": 65.26,
+    "macd": 3068.498436,
+    "macdSignal": 3328.93135,
+    "macdHistogram": -260.432913,
+    "macdHistogramThreeBarsAgo": -49.075236
+   },
+   "volatility": {
+    "atr14": 2280.750747,
+    "atrPercentOfPrice": 2.8829,
+    "atr14TwentyBarsAgo": 1254.159542,
+    "bollingerMiddle": 77982.351,
+    "bollingerUpper": 83140.8381,
+    "bollingerLower": 72823.8639,
+    "bollingerPercentB": 0.6095,
+    "bollingerBandwidth": 0.132299,
+    "bollingerBandwidthTwentyBarsAgo": 0.046642
+   },
+   "trendStrength": {
+    "adx14": 48.39,
+    "plusDi": 33.77,
+    "minusDi": 10.23
+   },
+   "structure": {
+    "classification": "LOWER_LOWS_HIGHER_HIGHS_EXPANDING",
+    "lastSwingHighs": [
+     81272.62,
+     81478.87,
+     82300.0
+    ],
+    "lastSwingLows": [
+     62535.24,
+     76888.0,
+     76264.0
+    ]
+   },
+   "levels": {
+    "support": [
+     {
+      "level": 78893.28,
+      "touches": 7,
+      "low": 78080.0,
+      "high": 79500.0
+     },
+     {
+      "level": 74412.97142857,
+      "touches": 14,
+      "low": 71777.0,
+      "high": 76888.0
+     },
+     {
+      "level": 69934.90333333,
+      "touches": 3,
+      "low": 69310.0,
+      "high": 70505.88
+     }
+    ],
+    "resistance": [
+     {
+      "level": 82071.49,
+      "touches": 6,
+      "low": 81272.62,
+      "high": 82850.0
+     }
+    ],
+    "twentyBarHigh": 82300.0,
+    "twentyBarLow": 64027.85
+   },
+   "volume": {
+    "last": 10572.4549,
+    "average20": 18746.7375,
+    "ratioToAverage": 0.564,
+    "trades": 2464603
+   },
+   "conditions": {
+    "closedAboveTwentyBarHigh": false,
+    "closedBelowTwentyBarLow": false,
+    "upperWickRejection": false,
+    "lowerWickRejection": false,
+    "insideBar": false
+   }
+  }
+ },
+ "_note": "Captured live from the sidecar, used as the base for synthetic test fixtures. Not a market prediction."
+}

@@ -1,0 +1,667 @@
+{
+  "version": 2,
+  "note": "The nine strategies as data. Prose conditions from the agent's context.strategyCatalogue, re-expressed as predicates the executor evaluates directly. Direction-parameterised conditions carry separate long and short values; a condition with neither applies to both. Each strategy also carries a stopRule, because a single swing-based stop applied to every strategy put breakout stops hundreds of points away and the desk rejected them on stop_within_atr_budget.",
+  "strategies": [
+    {
+      "name": "trend_continuation",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "STRONG_UPTREND",
+        "STRONG_DOWNTREND"
+      ],
+      "stop": "beyond the most recent 15m swing low (long) or swing high (short)",
+      "target": "short of the nearest opposing 1h zone",
+      "conditions": [
+        {
+          "id": "daily_adx",
+          "tf": "1d",
+          "op": "gte",
+          "field": "trendStrength.adx14",
+          "value": 25
+        },
+        {
+          "id": "hourly_adx",
+          "tf": "1h",
+          "op": "gte",
+          "field": "trendStrength.adx14",
+          "value": 25
+        },
+        {
+          "id": "daily_di_agrees",
+          "tf": "1d",
+          "op": "compare_field",
+          "left": "trendStrength.plusDi",
+          "right": "trendStrength.minusDi",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "hourly_di_agrees",
+          "tf": "1h",
+          "op": "compare_field",
+          "left": "trendStrength.plusDi",
+          "right": "trendStrength.minusDi",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "hourly_above_ema50",
+          "tf": "1h",
+          "op": "compare_field",
+          "left": "close",
+          "right": "movingAverages.ema50",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "hourly_above_ema200",
+          "tf": "1h",
+          "op": "compare_field",
+          "left": "close",
+          "right": "movingAverages.ema200",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "hourly_structure",
+          "tf": "1h",
+          "op": "equals",
+          "field": "structure.classification",
+          "long": "HIGHER_HIGHS_HIGHER_LOWS",
+          "short": "LOWER_HIGHS_LOWER_LOWS"
+        },
+        {
+          "id": "setup_macd_sign",
+          "tf": "15m",
+          "op": "sign_is",
+          "field": "momentum.macdHistogram",
+          "long": "positive",
+          "short": "negative"
+        },
+        {
+          "id": "setup_macd_strengthening",
+          "tf": "15m",
+          "op": "compare_field",
+          "left": "momentum.macdHistogram",
+          "right": "momentum.macdHistogramThreeBarsAgo",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "entry_beyond_swing",
+          "tf": "5m",
+          "op": "beyond_swing",
+          "field": "close",
+          "long": "structure.lastSwingHighs.0",
+          "short": "structure.lastSwingLows.0"
+        },
+        {
+          "id": "entry_volume",
+          "tf": "5m",
+          "op": "gte",
+          "field": "volume.ratioToAverage",
+          "value": 1.2
+        }
+      ],
+      "stopRule": {
+        "tf": "15m",
+        "long": "structure.lastSwingLows.0",
+        "short": "structure.lastSwingHighs.0",
+        "cushion": 0.1,
+        "note": "beyond the most recent 15m swing against the trade"
+      }
+    },
+    {
+      "name": "pullback_in_trend",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "STRONG_UPTREND",
+        "WEAK_UPTREND",
+        "STRONG_DOWNTREND",
+        "WEAK_DOWNTREND"
+      ],
+      "stop": "beyond the pullback extreme plus 0.25 x 15m atr14",
+      "target": "the prior 15m swing extreme in the trend direction",
+      "conditions": [
+        {
+          "id": "hourly_trend_side",
+          "tf": "1h",
+          "op": "compare_field",
+          "left": "close",
+          "right": "movingAverages.ema50",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "near_an_anchor",
+          "tf": "15m",
+          "op": "within_atr_of",
+          "field": "close",
+          "anchors": [
+            "movingAverages.ema20",
+            "movingAverages.ema50"
+          ],
+          "zones": true,
+          "minTouches": 2,
+          "multiple": 1.0
+        },
+        {
+          "id": "setup_rsi_band",
+          "tf": "15m",
+          "op": "between",
+          "field": "momentum.rsi14",
+          "long": [
+            40,
+            55
+          ],
+          "short": [
+            45,
+            60
+          ]
+        },
+        {
+          "id": "setup_rsi_turning_back",
+          "tf": "15m",
+          "op": "moved_toward",
+          "field": "momentum.rsi14",
+          "from": "momentum.rsi14FiveBarsAgo",
+          "target": 50
+        },
+        {
+          "id": "entry_wick_rejection",
+          "tf": "5m",
+          "op": "is_true",
+          "long": "conditions.lowerWickRejection",
+          "short": "conditions.upperWickRejection"
+        }
+      ],
+      "stopRule": {
+        "tf": "15m",
+        "long": "structure.lastSwingLows.0",
+        "short": "structure.lastSwingHighs.0",
+        "cushion": 0.25,
+        "note": "beyond the pullback extreme plus 0.25 x 15m atr14"
+      }
+    },
+    {
+      "name": "support_resistance_breakout",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "BREAKOUT_EXPANSION",
+        "STRONG_UPTREND",
+        "STRONG_DOWNTREND",
+        "RANGE_BOUND"
+      ],
+      "stop": "the far side of the breakout candle",
+      "target": "the next 1h zone in the breakout direction",
+      "conditions": [
+        {
+          "id": "broke_the_range",
+          "tf": "15m",
+          "op": "is_true",
+          "long": "conditions.closedAboveTwentyBarHigh",
+          "short": "conditions.closedBelowTwentyBarLow"
+        },
+        {
+          "id": "breakout_volume",
+          "tf": "15m",
+          "op": "gte",
+          "field": "volume.ratioToAverage",
+          "value": 1.5
+        },
+        {
+          "id": "bands_expanding",
+          "tf": "15m",
+          "op": "compare_field",
+          "left": "volatility.bollingerBandwidth",
+          "right": "volatility.bollingerBandwidthTwentyBarsAgo",
+          "comparison": "gt"
+        },
+        {
+          "id": "setup_adx",
+          "tf": "15m",
+          "op": "gte",
+          "field": "trendStrength.adx14",
+          "value": 20
+        },
+        {
+          "id": "hourly_not_opposed",
+          "tf": "1h",
+          "op": "not_opposed",
+          "field": "trendStrength"
+        }
+      ],
+      "stopRule": {
+        "tf": "15m",
+        "long": "levels.twentyBarHigh",
+        "short": "levels.twentyBarLow",
+        "cushion": 0.5,
+        "note": "the broken level plus 0.5 x 15m atr14 - NOT a distant swing"
+      }
+    },
+    {
+      "name": "breakout_retest",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "BREAKOUT_EXPANSION",
+        "STRONG_UPTREND",
+        "STRONG_DOWNTREND"
+      ],
+      "stop": "beyond the retest wick",
+      "target": "the swing extreme that produced the breakout",
+      "conditions": [
+        {
+          "id": "zone_at_the_break",
+          "tf": "15m",
+          "op": "zone_near_extreme",
+          "multiple": 0.5,
+          "long": "levels.twentyBarHigh",
+          "short": "levels.twentyBarLow"
+        },
+        {
+          "id": "close_on_breakout_side",
+          "tf": "15m",
+          "op": "compare_field",
+          "left": "close",
+          "right": "volatility.bollingerMiddle",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "entry_wick_rejection",
+          "tf": "5m",
+          "op": "is_true",
+          "long": "conditions.lowerWickRejection",
+          "short": "conditions.upperWickRejection"
+        },
+        {
+          "id": "entry_volume",
+          "tf": "5m",
+          "op": "gte",
+          "field": "volume.ratioToAverage",
+          "value": 1.0
+        },
+        {
+          "id": "hourly_macd_agrees",
+          "tf": "1h",
+          "op": "sign_is",
+          "field": "momentum.macdHistogram",
+          "long": "positive",
+          "short": "negative"
+        }
+      ],
+      "stopRule": {
+        "tf": "5m",
+        "long": "structure.lastSwingLows.0",
+        "short": "structure.lastSwingHighs.0",
+        "cushion": 0.25,
+        "note": "beyond the retest wick"
+      }
+    },
+    {
+      "name": "momentum_continuation",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "STRONG_UPTREND",
+        "STRONG_DOWNTREND",
+        "BREAKOUT_EXPANSION"
+      ],
+      "stop": "beyond the most recent 5m swing against the trade",
+      "target": "short of the nearest opposing 1h zone",
+      "conditions": [
+        {
+          "id": "setup_macd_strengthening",
+          "tf": "15m",
+          "op": "compare_field",
+          "left": "momentum.macdHistogram",
+          "right": "momentum.macdHistogramThreeBarsAgo",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "entry_macd_strengthening",
+          "tf": "5m",
+          "op": "compare_field",
+          "left": "momentum.macdHistogram",
+          "right": "momentum.macdHistogramThreeBarsAgo",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "setup_rsi_band",
+          "tf": "15m",
+          "op": "between",
+          "field": "momentum.rsi14",
+          "long": [
+            55,
+            70
+          ],
+          "short": [
+            30,
+            45
+          ]
+        },
+        {
+          "id": "entry_emas_ordered",
+          "tf": "5m",
+          "op": "ordered",
+          "fields": [
+            "movingAverages.ema9",
+            "movingAverages.ema20",
+            "movingAverages.ema50"
+          ],
+          "long": "descending",
+          "short": "ascending"
+        },
+        {
+          "id": "volatility_contained",
+          "tf": "15m",
+          "op": "ratio_lte",
+          "left": "volatility.atr14",
+          "right": "volatility.atr14TwentyBarsAgo",
+          "factor": 2.0
+        },
+        {
+          "id": "entry_volume",
+          "tf": "5m",
+          "op": "gte",
+          "field": "volume.ratioToAverage",
+          "value": 1.2
+        }
+      ],
+      "stopRule": {
+        "tf": "5m",
+        "long": "structure.lastSwingLows.0",
+        "short": "structure.lastSwingHighs.0",
+        "cushion": 0.1,
+        "note": "beyond the most recent 5m swing against the trade"
+      }
+    },
+    {
+      "name": "range_reversal",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "RANGE_BOUND"
+      ],
+      "stop": "beyond the zone that was tested",
+      "target": "the opposite side of the range",
+      "conditions": [
+        {
+          "id": "hourly_adx_low",
+          "tf": "1h",
+          "op": "lt",
+          "field": "trendStrength.adx14",
+          "value": 20
+        },
+        {
+          "id": "hourly_not_trending",
+          "tf": "1h",
+          "op": "not_in",
+          "field": "structure.classification",
+          "values": [
+            "HIGHER_HIGHS_HIGHER_LOWS",
+            "LOWER_HIGHS_LOWER_LOWS"
+          ]
+        },
+        {
+          "id": "at_a_tested_zone",
+          "tf": "15m",
+          "op": "within_atr_of",
+          "field": "close",
+          "anchors": [],
+          "zones": true,
+          "minTouches": 2,
+          "multiple": 0.5
+        },
+        {
+          "id": "band_extreme",
+          "tf": "15m",
+          "op": "band_extreme",
+          "field": "volatility.bollingerPercentB",
+          "long": 0.1,
+          "short": 0.9
+        },
+        {
+          "id": "entry_wick_rejection",
+          "tf": "5m",
+          "op": "is_true",
+          "long": "conditions.lowerWickRejection",
+          "short": "conditions.upperWickRejection"
+        }
+      ],
+      "stopRule": {
+        "tf": "15m",
+        "long": "nearest_zone",
+        "short": "nearest_zone",
+        "cushion": 0.5,
+        "note": "beyond the zone that was tested"
+      }
+    },
+    {
+      "name": "mean_reversion",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "RANGE_BOUND",
+        "WEAK_UPTREND",
+        "WEAK_DOWNTREND"
+      ],
+      "stop": "beyond the extreme that triggered the entry",
+      "target": "the 15m bollinger middle",
+      "conditions": [
+        {
+          "id": "outside_the_band",
+          "tf": "15m",
+          "op": "band_extreme",
+          "field": "volatility.bollingerPercentB",
+          "long": 0.0,
+          "short": 1.0
+        },
+        {
+          "id": "rsi_exhausted",
+          "tf": "15m",
+          "op": "threshold",
+          "field": "momentum.rsi14",
+          "long": {
+            "op": "lte",
+            "value": 25
+          },
+          "short": {
+            "op": "gte",
+            "value": 75
+          }
+        },
+        {
+          "id": "not_against_a_strong_trend",
+          "op": "regime_not",
+          "long": "STRONG_DOWNTREND",
+          "short": "STRONG_UPTREND"
+        },
+        {
+          "id": "volatility_settling",
+          "tf": "15m",
+          "op": "compare_field",
+          "left": "volatility.atr14",
+          "right": "volatility.atr14TwentyBarsAgo",
+          "comparison": "lte"
+        },
+        {
+          "id": "daily_near_ema50",
+          "tf": "1d",
+          "op": "within_atr_of",
+          "field": "close",
+          "anchors": [
+            "movingAverages.ema50"
+          ],
+          "zones": false,
+          "multiple": 2.0
+        }
+      ],
+      "stopRule": {
+        "tf": "15m",
+        "long": "volatility.bollingerLower",
+        "short": "volatility.bollingerUpper",
+        "cushion": 0.25,
+        "note": "beyond the extreme that triggered the entry"
+      }
+    },
+    {
+      "name": "volatility_expansion",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "BREAKOUT_EXPANSION",
+        "HIGH_VOLATILITY"
+      ],
+      "stop": "the opposite bollinger band",
+      "target": "the next 1h zone in the expansion direction",
+      "conditions": [
+        {
+          "id": "bands_doubled",
+          "tf": "15m",
+          "op": "ratio_gte",
+          "left": "volatility.bollingerBandwidth",
+          "right": "volatility.bollingerBandwidthTwentyBarsAgo",
+          "factor": 2.0
+        },
+        {
+          "id": "closed_outside_a_band",
+          "tf": "15m",
+          "op": "compare_field",
+          "left": "close",
+          "right": "volatility.bollingerUpper",
+          "long": "gt",
+          "shortRight": "volatility.bollingerLower",
+          "short": "lt"
+        },
+        {
+          "id": "expansion_volume",
+          "tf": "15m",
+          "op": "gte",
+          "field": "volume.ratioToAverage",
+          "value": 2.0
+        },
+        {
+          "id": "hourly_adx",
+          "tf": "1h",
+          "op": "gte",
+          "field": "trendStrength.adx14",
+          "value": 20
+        },
+        {
+          "id": "hourly_di_agrees",
+          "tf": "1h",
+          "op": "compare_field",
+          "left": "trendStrength.plusDi",
+          "right": "trendStrength.minusDi",
+          "long": "gt",
+          "short": "lt"
+        },
+        {
+          "id": "spread_within_limit",
+          "op": "spread_ok"
+        }
+      ],
+      "stopRule": {
+        "tf": "15m",
+        "long": "volatility.bollingerLower",
+        "short": "volatility.bollingerUpper",
+        "cushion": 0.0,
+        "note": "the opposite bollinger band"
+      }
+    },
+    {
+      "name": "tested_reversal",
+      "directions": [
+        "LONG",
+        "SHORT"
+      ],
+      "requiredRegime": [
+        "WEAK_UPTREND",
+        "WEAK_DOWNTREND",
+        "HIGH_VOLATILITY",
+        "UNCERTAIN"
+      ],
+      "scoreBonusRequired": 10,
+      "stop": "beyond the tested extreme",
+      "target": "the prior 1h swing in the trade direction",
+      "conditions": [
+        {
+          "id": "daily_rsi_extreme",
+          "tf": "1d",
+          "op": "threshold",
+          "field": "momentum.rsi14",
+          "long": {
+            "op": "lte",
+            "value": 30
+          },
+          "short": {
+            "op": "gte",
+            "value": 70
+          }
+        },
+        {
+          "id": "daily_rsi_turning",
+          "tf": "1d",
+          "op": "turned_back",
+          "field": "momentum.rsi14",
+          "from": "momentum.rsi14FiveBarsAgo",
+          "long": "up",
+          "short": "down"
+        },
+        {
+          "id": "hourly_structure_flipped",
+          "tf": "1h",
+          "op": "equals",
+          "field": "structure.classification",
+          "long": "HIGHER_HIGHS_HIGHER_LOWS",
+          "short": "LOWER_HIGHS_LOWER_LOWS"
+        },
+        {
+          "id": "setup_beyond_opposing_swing",
+          "tf": "15m",
+          "op": "beyond_swing",
+          "field": "close",
+          "long": "structure.lastSwingHighs.0",
+          "short": "structure.lastSwingLows.0"
+        },
+        {
+          "id": "entry_volume",
+          "tf": "5m",
+          "op": "gte",
+          "field": "volume.ratioToAverage",
+          "value": 1.5
+        }
+      ],
+      "stopRule": {
+        "tf": "15m",
+        "long": "structure.lastSwingLows.0",
+        "short": "structure.lastSwingHighs.0",
+        "cushion": 0.5,
+        "note": "beyond the tested extreme"
+      }
+    }
+  ]
+}

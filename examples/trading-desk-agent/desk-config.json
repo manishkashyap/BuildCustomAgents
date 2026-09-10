@@ -5,7 +5,7 @@
   "exchange": "BINANCE_SPOT",
   "startingEquity": 100000.0,
   "allowLong": true,
-  "allowShort": false,
+  "allowShort": true,
   "riskPerTradePercent": 0.35,
   "maxPositionExposurePercent": 15.0,
   "maxPortfolioExposurePercent": 30.0,
