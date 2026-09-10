@@ -25,7 +25,7 @@ from urllib.parse import parse_qs, urlparse
 import broker
 import marketdata
 
-TIMEFRAMES = ["1m", "5m", "15m", "1h", "1d"]
+TIMEFRAMES = ["5m", "15m", "1h", "4h", "1d"]
 FILTER_CACHE_SECONDS = 300
 
 
@@ -70,10 +70,10 @@ def analysis(symbol):
         "candlesPerTimeframe": marketdata.REQUIRED_CANDLES,
         "timeframeRoles": {
             "1d": "primary trend, volatility environment, major levels",
+            "4h": "intermediate trend, and whether a daily move has follow-through",
             "1h": "regime and directional bias",
             "15m": "setup and structural confirmation",
             "5m": "entry confirmation and momentum",
-            "1m": "execution timing and invalidation",
         },
         "dataValidation": {"valid": not issues, "issues": issues},
         "quote": quote,

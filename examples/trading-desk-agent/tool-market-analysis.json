@@ -1,6 +1,6 @@
 {
   "name": "market_get_multi_timeframe_analysis",
-  "description": "Retrieve validated market structure and indicators for one instrument across all five playbook timeframes (1m, 5m, 15m, 1h, 1d) in a single call. Each timeframe is derived from exactly 200 fully closed candles; the forming candle is discarded before anything is computed. Only timeframes that passed every validation check appear in 'timeframes' — a missing timeframe is a data failure, not a neutral reading — and 'dataValidation.issues' explains each omission. Raw candles are deliberately not returned: every number a decision rests on is computed here, not by the model, so do not recompute or estimate any of them. See the response schema for the full field list.",
+  "description": "Retrieve validated market structure and indicators for one instrument across all five playbook timeframes (5m, 15m, 1h, 4h, 1d) in a single call. Each timeframe is derived from exactly 200 fully closed candles; the forming candle is discarded before anything is computed. Only timeframes that passed every validation check appear in 'timeframes' \u2014 a missing timeframe is a data failure, not a neutral reading \u2014 and 'dataValidation.issues' explains each omission. Raw candles are deliberately not returned: every number a decision rests on is computed here, not by the model, so do not recompute or estimate any of them. See the response schema for the full field list.",
   "type": "HTTP",
   "inputSchema": {
     "type": "object",
@@ -111,9 +111,6 @@
       "timeframes": {
         "type": "object",
         "properties": {
-          "1m": {
-            "$ref": "#/$defs/timeframe"
-          },
           "5m": {
             "$ref": "#/$defs/timeframe"
           },
@@ -121,6 +118,9 @@
             "$ref": "#/$defs/timeframe"
           },
           "1h": {
+            "$ref": "#/$defs/timeframe"
+          },
+          "4h": {
             "$ref": "#/$defs/timeframe"
           },
           "1d": {
@@ -470,7 +470,6 @@
     "operation": "READ",
     "riskLevel": "LOW",
     "approval": {
-      
       "required": false
     }
   }

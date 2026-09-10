@@ -17,11 +17,15 @@ REQUIRED_CANDLES = 200
 
 # Binance interval -> length in milliseconds. Only these five are offered, because they
 # are the five the agent's playbook assigns a distinct job to.
+#
+# 4h replaced 1m: no strategy condition ever read a 1m field, so fetching it cost a request
+# and about 400 tokens of payload per call for data nothing consumed. 4h sits between the
+# daily trend and the hourly regime, which is the gap the playbook actually had.
 INTERVALS = {
-    "1m": 60_000,
     "5m": 300_000,
     "15m": 900_000,
     "1h": 3_600_000,
+    "4h": 14_400_000,
     "1d": 86_400_000,
 }
 
@@ -109,6 +113,28 @@ def closed_candles(symbol, interval, now_ms):
         if int(row[6]) < now_ms
     ]
     return candles[-REQUIRED_CANDLES:]
+
+
+def candles_between(symbol, interval, start_ms, end_ms):
+    """
+    Fully closed candles covering a historical window.
+
+    closed_candles only reaches back 200 bars from now, which is no use to the outcome backfill: it
+    needs the window that followed a tick recorded hours ago. Binance caps a klines response at
+    1000 rows, which at 5m is about three days - more than any horizon here needs.
+    """
+    raw = _get("/api/v3/klines", {"symbol": symbol, "interval": interval,
+                                  "startTime": int(start_ms), "endTime": int(end_ms),
+                                  "limit": 1000})
+    if not isinstance(raw, list):
+        raise DataError(f"ranged klines for {interval} was not a JSON array")
+    return [
+        {"openTime": int(row[0]), "open": float(row[1]), "high": float(row[2]),
+         "low": float(row[3]), "close": float(row[4]), "volume": float(row[5]),
+         "closeTime": int(row[6]), "trades": int(row[8])}
+        for row in raw
+        if int(row[6]) <= end_ms
+    ]
 
 
 def validate(candles, interval, now_ms):
