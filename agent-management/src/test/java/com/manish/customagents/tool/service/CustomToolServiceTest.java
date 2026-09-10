@@ -8,8 +8,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.manish.customagents.contracts.CredentialType;
+import com.manish.customagents.credential.entity.TenantCredentialEntity;
+import com.manish.customagents.credential.service.CredentialReferenceScanner;
+import com.manish.customagents.credential.service.TenantCredentialService;
+import com.manish.customagents.credential.service.ToolCredentialValidator;
 import com.manish.customagents.egress.service.TenantEgressHostService;
 import com.manish.customagents.egress.service.ToolEgressValidator;
+import com.manish.customagents.error.CredentialNotFoundException;
 import com.manish.customagents.error.DuplicateToolNameException;
 import com.manish.customagents.error.ToolHostNotAllowedException;
 import com.manish.customagents.tool.enums.ToolStatus;
@@ -43,6 +49,9 @@ class CustomToolServiceTest {
     @Mock
     private TenantEgressHostService egressHosts;
 
+    @Mock
+    private TenantCredentialService credentialService;
+
     private CustomToolService service;
     private ObjectMapper objectMapper;
 
@@ -54,6 +63,8 @@ class CustomToolServiceTest {
                 new ToolDefinitionJsonMapper(objectMapper),
                 new DefinitionBudgetValidator(objectMapper),
                 new ToolEgressValidator(egressHosts),
+                new ToolCredentialValidator(
+                        credentialService, new CredentialReferenceScanner(repository, objectMapper)),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -199,6 +210,61 @@ class CustomToolServiceTest {
                 .hasMessageContaining("literal host");
 
         verify(repository, never()).saveAndFlush(entity);
+    }
+
+    @Test
+    void refusesToPublishAToolWhoseCredentialDoesNotExist() {
+        CustomToolEntity entity = entity(authenticatedRequest("google-sheets"), ToolStatus.DRAFT);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse("tool-1", "tenant-1"))
+                .thenReturn(Optional.of(entity));
+        when(egressHosts.activePatterns("tenant-1")).thenReturn(List.of("api.example.com"));
+        when(credentialService.requireActiveByName("tenant-1", "google-sheets"))
+                .thenThrow(new CredentialNotFoundException("google-sheets"));
+
+        assertThatThrownBy(() -> service.updateStatus("tenant-1", "tool-1", ToolStatus.PUBLISHED))
+                .isInstanceOf(CredentialNotFoundException.class);
+
+        assertThat(entity.getStatus()).isEqualTo(ToolStatus.DRAFT);
+        verify(repository, never()).saveAndFlush(entity);
+    }
+
+    @Test
+    void publishesAToolWhoseCredentialIsActive() {
+        CustomToolEntity entity = entity(authenticatedRequest("google-sheets"), ToolStatus.DRAFT);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse("tool-1", "tenant-1"))
+                .thenReturn(Optional.of(entity));
+        when(egressHosts.activePatterns("tenant-1")).thenReturn(List.of("api.example.com"));
+        when(credentialService.requireActiveByName("tenant-1", "google-sheets"))
+                .thenReturn(new TenantCredentialEntity(
+                        "tenant-1", "google-sheets", CredentialType.GOOGLE_SERVICE_ACCOUNT, null,
+                        "v1.aa.bb", "primary", "{}", "admin", NOW));
+
+        assertThat(service.updateStatus("tenant-1", "tool-1", ToolStatus.PUBLISHED).status())
+                .isEqualTo(ToolStatus.PUBLISHED);
+    }
+
+    /** A tool with no auth block must not consult the credential store at all. */
+    @Test
+    void doesNotLookUpACredentialForAToolThatNeedsNoAuthentication() {
+        CustomToolEntity entity = entity(request("campaign.get"), ToolStatus.DRAFT);
+        when(repository.findByIdAndLicenseCodeAndDeletedFalse("tool-1", "tenant-1"))
+                .thenReturn(Optional.of(entity));
+        when(egressHosts.activePatterns("tenant-1")).thenReturn(List.of("api.example.com"));
+
+        service.updateStatus("tenant-1", "tool-1", ToolStatus.PUBLISHED);
+
+        verify(credentialService, never()).requireActiveByName(any(), any());
+    }
+
+    private CreateToolRequest authenticatedRequest(String credentialName) {
+        var configuration = objectMapper.createObjectNode()
+                .put("method", "GET")
+                .put("url", "https://api.example.com/v1/values");
+        configuration.putObject("auth").put("credential", credentialName);
+        return new CreateToolRequest(
+                "sheets.read", "Reads a range", ToolType.HTTP,
+                objectMapper.createObjectNode().put("type", "object"),
+                null, configuration, null);
     }
 
     private CustomToolEntity entity(CreateToolRequest definition, ToolStatus status) {

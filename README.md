@@ -154,6 +154,25 @@ Two things stay platform policy and are deliberately not tenant-configurable:
 empty in a deployed environment; it is there so local examples can reach their APIs without first
 registering a tenant.
 
+A tool that needs authentication references a credential by name; the secret is stored encrypted and
+is never returned by any endpoint:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/credentials \
+  --header 'X-Agent-License-Code: DEV_LICENSE' \
+  --header 'X-Agent-User-Id: dev-user' \
+  --header 'X-Agent-Roles: AGENT_EDITOR' \
+  --header 'Content-Type: application/json' \
+  --data '{"name":"google-sheets","type":"GOOGLE_SERVICE_ACCOUNT",
+           "secret":"{ ...service account JSON... }",
+           "settings":{"scopes":"https://www.googleapis.com/auth/spreadsheets"}}'
+```
+
+Then `"auth": {"credential": "google-sheets"}` in the tool's `configuration`. Six schemes are
+supported — API key in a header or query parameter, static bearer, HTTP Basic, OAuth2 client
+credentials, and Google service accounts — and `AGENT_CREDENTIAL_KEY` must be set to the same value
+on both services. See [`contracts/tool-authentication-contract.md`](contracts/tool-authentication-contract.md).
+
 Publishing is refused with `422` if a definition would not fit in a model request. The budgets are
 per tool, per agent, and per agent-plus-its-tools; see `PromptBudget`. Drafts are not checked, so
 work in progress can always be saved.

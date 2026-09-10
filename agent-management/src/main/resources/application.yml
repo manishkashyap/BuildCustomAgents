@@ -22,6 +22,12 @@ server:
   port: ${SERVER_PORT:8080}
 
 agent-platform:
+  credentials:
+    # 256-bit key, base64. Encrypts credential secrets at rest; never stored beside the ciphertext.
+    # Generate one with: openssl rand -base64 32
+    encryption-key: ${AGENT_CREDENTIAL_KEY:}
+    # Recorded on each encrypted row so a rotated key can still read older records.
+    key-id: ${AGENT_CREDENTIAL_KEY_ID:primary}
   security:
     enabled: ${AGENT_SECURITY_ENABLED:false}
 

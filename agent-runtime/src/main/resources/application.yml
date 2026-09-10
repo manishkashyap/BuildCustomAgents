@@ -22,6 +22,13 @@ server:
   port: ${SERVER_PORT:8081}
 
 agent-platform:
+  credentials:
+    # Must be the SAME key agent-management encrypted with; runtime only decrypts.
+    encryption-key: ${AGENT_CREDENTIAL_KEY:}
+    # How long a credential record is cached, and so the delay on a rotation or a disable.
+    cache-ttl: ${AGENT_CREDENTIAL_CACHE_TTL:60s}
+    # How early an exchanged token is treated as expired, so a call never races the expiry.
+    token-refresh-skew: ${AGENT_CREDENTIAL_TOKEN_SKEW:60s}
   security:
     enabled: ${AGENT_SECURITY_ENABLED:false}
 

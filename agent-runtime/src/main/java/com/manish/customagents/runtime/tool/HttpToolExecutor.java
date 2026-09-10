@@ -2,6 +2,8 @@ package com.manish.customagents.runtime.tool;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.manish.customagents.runtime.auth.AppliedAuth;
+import com.manish.customagents.runtime.auth.ToolAuthApplier;
 import com.manish.customagents.runtime.errors.AgentExecutionException;
 
 import java.net.URI;
@@ -15,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 import com.manish.customagents.contracts.ToolType;
@@ -30,14 +33,17 @@ public class HttpToolExecutor implements ToolExecutor {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final HttpEgressGuard egressGuard;
+    private final ToolAuthApplier authApplier;
 
     public HttpToolExecutor(
             @Qualifier("httpToolRestClient") RestClient restClient,
             ObjectMapper objectMapper,
-            HttpEgressGuard egressGuard) {
+            HttpEgressGuard egressGuard,
+            ToolAuthApplier authApplier) {
         this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.egressGuard = egressGuard;
+        this.authApplier = authApplier;
     }
 
     @Override
@@ -49,25 +55,42 @@ public class HttpToolExecutor implements ToolExecutor {
     public ToolExecutionResult execute(ToolExecutionRequest executionRequest) {
         PublishedToolDefinition tool = executionRequest.tool();
         JsonNode configuration = tool.configuration();
+        String licenseCode = executionRequest.context().licenseCode();
         HttpMethod method = parseMethod(configuration.path("method").asText());
         URI uri = expandAndValidateUri(
-                configuration.path("url").asText(),
-                executionRequest.arguments(),
-                executionRequest.context().licenseCode());
+                configuration.path("url").asText(), executionRequest.arguments(), licenseCode);
+        // Credentials are attached only after the egress guard has vetted the destination, so a
+        // secret can never be sent to a host the tenant has not approved.
+        AppliedAuth auth = authApplier.apply(uri, configuration, licenseCode);
         try {
-            RestClient.RequestBodySpec request = restClient.method(method)
-                    .uri(uri)
-                    .header(HttpHeaders.USER_AGENT, USER_AGENT)
-                    .accept(MediaType.APPLICATION_JSON);
-            if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) {
-                request.contentType(MediaType.APPLICATION_JSON).body(executionRequest.arguments());
+            return send(method, auth, executionRequest);
+        } catch (HttpClientErrorException.Unauthorized | HttpClientErrorException.Forbidden exception) {
+            // A cached token can expire between the check and the call. Exchange once and retry;
+            // a static key that was rejected will not improve, and reports the original failure.
+            if (!authApplier.retryableAfterUnauthorized(configuration, licenseCode)) {
+                throw new AgentExecutionException(
+                        "HTTP tool " + tool.name() + " was rejected by " + uri.getHost()
+                                + " with " + exception.getStatusCode().value(), exception);
             }
-            JsonNode response = request.retrieve().body(JsonNode.class);
-            return ToolExecutionResult.of(response == null ? objectMapper.nullNode() : response);
+            return send(method, authApplier.apply(uri, configuration, licenseCode), executionRequest);
         } catch (RestClientException exception) {
             throw new AgentExecutionException(
                     "HTTP tool " + tool.name() + " failed calling " + uri.getHost(), exception);
         }
+    }
+
+    private ToolExecutionResult send(
+            HttpMethod method, AppliedAuth auth, ToolExecutionRequest executionRequest) {
+        RestClient.RequestBodySpec request = restClient.method(method)
+                .uri(auth.uri())
+                .header(HttpHeaders.USER_AGENT, USER_AGENT)
+                .accept(MediaType.APPLICATION_JSON);
+        auth.headers().forEach(request::header);
+        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) {
+            request.contentType(MediaType.APPLICATION_JSON).body(executionRequest.arguments());
+        }
+        JsonNode response = request.retrieve().body(JsonNode.class);
+        return ToolExecutionResult.of(response == null ? objectMapper.nullNode() : response);
     }
 
     private HttpMethod parseMethod(String configuredMethod) {

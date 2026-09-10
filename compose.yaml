@@ -26,6 +26,8 @@ services:
       DB_PASSWORD: management_dev
       AGENT_RUNTIME_BASE_URL: http://agent-runtime:8081
       AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:-local-internal-token}
+      AGENT_CREDENTIAL_KEY: ${AGENT_CREDENTIAL_KEY:-}
+      AGENT_CREDENTIAL_KEY_ID: ${AGENT_CREDENTIAL_KEY_ID:-primary}
     ports:
       - "8080:8080"
     depends_on:
@@ -58,6 +60,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODELS: ${GEMINI_MODELS:-gemini-3.6-flash}
       AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:-local-internal-token}
+      AGENT_CREDENTIAL_KEY: ${AGENT_CREDENTIAL_KEY:-}
+      AGENT_CREDENTIAL_CACHE_TTL: ${AGENT_CREDENTIAL_CACHE_TTL:-60s}
     ports:
       - "8081:8081"
     depends_on:

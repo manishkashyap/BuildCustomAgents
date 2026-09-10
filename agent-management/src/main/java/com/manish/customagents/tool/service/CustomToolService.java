@@ -3,6 +3,7 @@ package com.manish.customagents.tool.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.manish.customagents.budget.DefinitionBudgetValidator;
+import com.manish.customagents.credential.service.ToolCredentialValidator;
 import com.manish.customagents.egress.service.ToolEgressValidator;
 import com.manish.customagents.error.DuplicateToolNameException;
 import com.manish.customagents.error.InvalidToolStatusTransitionException;
@@ -29,6 +30,7 @@ public class CustomToolService {
     private final ToolDefinitionJsonMapper definitionJsonMapper;
     private final DefinitionBudgetValidator budgetValidator;
     private final ToolEgressValidator egressValidator;
+    private final ToolCredentialValidator credentialValidator;
     private final Clock clock;
 
     public CustomToolService(
@@ -36,11 +38,13 @@ public class CustomToolService {
             ToolDefinitionJsonMapper definitionJsonMapper,
             DefinitionBudgetValidator budgetValidator,
             ToolEgressValidator egressValidator,
+            ToolCredentialValidator credentialValidator,
             Clock clock) {
         this.repository = repository;
         this.definitionJsonMapper = definitionJsonMapper;
         this.budgetValidator = budgetValidator;
         this.egressValidator = egressValidator;
+        this.credentialValidator = credentialValidator;
         this.clock = clock;
     }
 
@@ -129,6 +133,9 @@ public class CustomToolService {
         // Same reasoning as the budget check: validated on publish, not on save, so a draft can be
         // written against a host an administrator has not allowed yet.
         egressValidator.check(licenseCode, definition.type(), definition.configuration());
+        // A referenced credential must exist and be active before the tool can be published, so a
+        // missing credential fails here rather than inside a run hours later.
+        credentialValidator.check(licenseCode, definition.type(), definition.configuration());
         entity.publish(clock.instant());
         repository.saveAndFlush(entity);
         return statusResponse(entity);

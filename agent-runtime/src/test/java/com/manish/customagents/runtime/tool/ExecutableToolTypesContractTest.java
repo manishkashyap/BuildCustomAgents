@@ -19,7 +19,7 @@ class ExecutableToolTypesContractTest {
     void contractMatchesTheRegisteredExecutors() {
         ToolExecutorRegistry registry = new ToolExecutorRegistry(List.of(
                 new HttpToolExecutor(
-                        RestClient.builder().build(), new ObjectMapper(), null),
+                        RestClient.builder().build(), new ObjectMapper(), null, null),
                 new BuiltInToolExecutor(),
                 new CustomAgentToolExecutor()));
 

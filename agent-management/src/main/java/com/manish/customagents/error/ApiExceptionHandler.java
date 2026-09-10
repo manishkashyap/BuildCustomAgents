@@ -75,6 +75,36 @@ public class ApiExceptionHandler {
                 exception.getMessage(), "runtime-retirement-check-unavailable"));
     }
 
+    @ExceptionHandler(CredentialNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleCredentialNotFound(CredentialNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem(
+                HttpStatus.NOT_FOUND, "Credential not found", exception.getMessage(),
+                "credential-not-found"));
+    }
+
+    @ExceptionHandler(DuplicateCredentialNameException.class)
+    ResponseEntity<ProblemDetail> handleDuplicateCredential(DuplicateCredentialNameException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem(
+                HttpStatus.CONFLICT, "Credential already exists", exception.getMessage(),
+                "credential-already-exists"));
+    }
+
+    @ExceptionHandler(CredentialInUseException.class)
+    ResponseEntity<ProblemDetail> handleCredentialInUse(CredentialInUseException exception) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, "Credential is in use",
+                exception.getMessage(), "credential-in-use");
+        problem.setProperty("tools", exception.tools());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    @ExceptionHandler(InvalidCredentialSettingsException.class)
+    ResponseEntity<ProblemDetail> handleInvalidCredentialSettings(
+            InvalidCredentialSettingsException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem(
+                HttpStatus.BAD_REQUEST, "Invalid credential settings", exception.getMessage(),
+                "invalid-credential-settings"));
+    }
+
     @ExceptionHandler(ToolHostNotAllowedException.class)
     ResponseEntity<ProblemDetail> handleToolHostNotAllowed(ToolHostNotAllowedException exception) {
         ProblemDetail problem = problem(HttpStatus.UNPROCESSABLE_ENTITY,

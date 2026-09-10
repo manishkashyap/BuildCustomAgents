@@ -11,6 +11,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.manish.customagents.contracts.ToolType;
 import com.manish.customagents.runtime.config.DynamicHttpToolProperties;
+import com.manish.customagents.runtime.auth.AccessTokenExchange;
+import com.manish.customagents.runtime.auth.ToolAuthApplier;
+import com.manish.customagents.runtime.definition.ManagementCredentialRepository;
 import com.manish.customagents.runtime.definition.TenantEgressAllowlistRepository;
 import com.manish.customagents.runtime.errors.AgentExecutionException;
 import java.util.List;
@@ -34,6 +37,20 @@ class HttpToolExecutorTest {
     @Mock
     private TenantEgressAllowlistRepository allowlist;
 
+    @Mock
+    private ManagementCredentialRepository credentialRepository;
+
+    @Mock
+    private AccessTokenExchange tokenExchange;
+
+    /**
+     * A real applier over mocked collaborators: every tool here has no auth block, so apply()
+     * short-circuits and neither mock is ever touched.
+     */
+    private ToolAuthApplier authApplier() {
+        return new ToolAuthApplier(credentialRepository, tokenExchange);
+    }
+
     /**
      * The tenant allowlist is the only gate exercised here; the address checks would need real DNS,
      * so they are covered separately in {@link HttpEgressGuardTest}.
@@ -50,7 +67,7 @@ class HttpToolExecutorTest {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         HttpToolExecutor executor = new HttpToolExecutor(
-                builder.build(), objectMapper, guard(List.of("api.example.com")));
+                builder.build(), objectMapper, guard(List.of("api.example.com")), authApplier());
         server.expect(requestTo("https://api.example.com/campaigns/cmp-1"))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header("User-Agent", "Custom-Agent-Platform/1.0"))
@@ -68,7 +85,7 @@ class HttpToolExecutorTest {
     @Test
     void rejectsHostsOutsideTheTenantAllowlist() {
         HttpToolExecutor executor = new HttpToolExecutor(
-                RestClient.builder().build(), objectMapper, guard(List.of("api.example.com")));
+                RestClient.builder().build(), objectMapper, guard(List.of("api.example.com")), authApplier());
 
         assertThatThrownBy(() -> executor.execute(new ToolExecutionRequest(
                 definition("https://attacker.example/campaigns/{campaignId}"),
@@ -87,7 +104,7 @@ class HttpToolExecutorTest {
         DynamicHttpToolProperties properties = new DynamicHttpToolProperties();
         properties.setAllowPrivateNetworks(true);
         HttpToolExecutor executor = new HttpToolExecutor(
-                RestClient.builder().build(), objectMapper, new HttpEgressGuard(allowlist, properties));
+                RestClient.builder().build(), objectMapper, new HttpEgressGuard(allowlist, properties), authApplier());
 
         assertThatThrownBy(() -> executor.execute(new ToolExecutionRequest(
                 definition("https://api.other.com/campaigns/{campaignId}"),
@@ -104,7 +121,7 @@ class HttpToolExecutorTest {
     @Test
     void rejectsAnArgumentThatRedirectsTheRequestToAnotherHost() {
         HttpToolExecutor executor = new HttpToolExecutor(
-                RestClient.builder().build(), objectMapper, guard(List.of("api.example.com")));
+                RestClient.builder().build(), objectMapper, guard(List.of("api.example.com")), authApplier());
 
         assertThatThrownBy(() -> executor.execute(new ToolExecutionRequest(
                 definition("https://{campaignId}/campaigns"),

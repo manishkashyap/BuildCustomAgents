@@ -3,6 +3,7 @@ package com.manish.customagents.tool.model;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.manish.customagents.contracts.ToolAuthRules;
 import com.manish.customagents.contracts.ToolType;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -93,6 +94,51 @@ public record CreateToolRequest(
             return false;
         }
         return HumanInteractionPolicyRules.isAudienceValid(approval.path("audience"));
+    }
+
+    @AssertTrue(message = "configuration must not contain secret material; reference a credential by name under configuration.auth")
+    @JsonIgnore
+    public boolean isConfigurationFreeOfInlinedSecrets() {
+        if (configuration == null || !configuration.isObject()) {
+            return true;
+        }
+        // configuration is returned verbatim by GET /api/v1/tools and shown in the console, so a
+        // pasted key would be readable by every reader in the tenant. Catch the common shapes.
+        for (var entry : configuration.properties()) {
+            if (ToolAuthRules.looksLikeInlinedSecret(entry.getKey())) {
+                return false;
+            }
+            if ("headers".equals(entry.getKey()) && entry.getValue().isObject()) {
+                for (var header : entry.getValue().properties()) {
+                    if (ToolAuthRules.looksLikeInlinedSecret(header.getKey())) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    @AssertTrue(message = "configuration.auth accepts only a credential name")
+    @JsonIgnore
+    public boolean isAuthBlockValid() {
+        if (configuration == null || !configuration.isObject()) {
+            return true;
+        }
+        JsonNode auth = configuration.path("auth");
+        if (auth.isMissingNode() || auth.isNull()) {
+            return true;
+        }
+        if (!auth.isObject()) {
+            return false;
+        }
+        for (var entry : auth.properties()) {
+            if (!ToolAuthRules.isAllowedAuthKey(entry.getKey())) {
+                return false;
+            }
+        }
+        return ToolAuthRules.isValidCredentialName(
+                auth.path(ToolAuthRules.CREDENTIAL_KEY).asText(""));
     }
 
     @AssertTrue(message = "HTTP tools require an absolute http/https configuration.url and a supported configuration.method")
